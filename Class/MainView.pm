@@ -282,14 +282,14 @@ sub _constructView
    my ($I) = @_;
    my $model = Class::WirelessApp->getModel();
 
-   # declare all variables here as some will be need to be used
-   # when signal handlers are created
+   # declare all interactive widgets here (buttons, text fields, etc)
+   # as some will be need to be used when signal handlers are created
    #
    my ($menu_tree, $menu);
-   my ($startupFrame, $startupBox, $startupEntry, $startupButton);
-   my ($profiledirFrame, $profiledirBox, $profiledirEntry, $profiledirButton);
+   my ($startupEntry, $startupButton);
+   my ($profileEntry, $profileButton);
    my ($new, $edit, $delete, $scan);
-   my ($list, $buttonBox, $up, $down);
+   my ($list, $up, $down);
 
    #-#-#-#-#-#-#-#-#-#-#
    # Main Menu         #
@@ -355,52 +355,61 @@ sub _constructView
 
    my $configBox = new Gtk2::VBox(TRUE, 5);
    
-   # Create Frame to hold startup script file chooser
-   # Create HBox to hold entry and button
+   # layout startup script widgets...
    #
-   $startupFrame = new Gtk2::Frame(" Startup Script ");
-   $startupBox = new Gtk2::HBox(FALSE, 2);
-
+   my $scriptWidgets = new Gtk2::HBox(FALSE, 5);
    $startupEntry = new Gtk2::Entry();
    $startupEntry->set_editable(FALSE);
    $startupButton = new_with_label Gtk2::Button("Browse");
-
-   # add entry and button to box, then add box to frame...
-   #
-   $startupBox->pack_start($startupEntry, TRUE, TRUE, 0);
-   $startupBox->pack_start($startupButton, FALSE, FALSE, 0);
-   $startupFrame->add($startupBox);
+   $scriptWidgets->pack_start($startupEntry, TRUE, TRUE, 0);
+   $scriptWidgets->pack_start($startupButton, FALSE, FALSE, 0);
    
-   # Create Frame to hold profile dir file chooser
-   # Create HBox to hold entry and button
-   #
-   $profiledirFrame = new Gtk2::Frame(" Profile Directory ");
-   $profiledirBox = new Gtk2::HBox(FALSE, 2);
+   my $startupHBox = new Gtk2::HBox(FALSE, 0);
+   my $startupVBox = new Gtk2::VBox(FALSE, 0);
+   $startupHBox->pack_start($scriptWidgets, TRUE, TRUE, 10);
+   $startupVBox->pack_start($startupHBox, TRUE, TRUE, 10);
+
+   my $startupFrame = new Gtk2::Frame(" Startup Script ");
+   $startupFrame->add($startupVBox);
    
-   $profiledirEntry = new Gtk2::Entry();
-   $profiledirEntry->set_editable(FALSE);
-   $profiledirButton = Gtk2::Button->new_with_label("Browse");
-
-   # add entry and button to box, then add box to frame...
+   # layout profile dir widgets...
    #
-   $profiledirBox->pack_start($profiledirEntry, TRUE, TRUE, 0);
-   $profiledirBox->pack_start($profiledirButton, FALSE, FALSE, 0);
-   $profiledirFrame->add($profiledirBox);
+   my $profiledirWidgets = new Gtk2::HBox(FALSE, 5);
+   $profileEntry = new Gtk2::Entry();
+   $profileEntry->set_editable(FALSE);
+   $profileButton = Gtk2::Button->new_with_label("Browse");
+   $profiledirWidgets->pack_start($profileEntry, TRUE, TRUE, 0);
+   $profiledirWidgets->pack_start($profileButton, FALSE, FALSE, 0);
 
+   my $profiledirHBox = new Gtk2::HBox(FALSE, 0);
+   my $profiledirVBox = new Gtk2::VBox(FALSE, 0);
+   $profiledirHBox->pack_start($profiledirWidgets, TRUE, TRUE, 10);
+   $profiledirVBox->pack_start($profiledirHBox, TRUE, TRUE, 10);
+   
+   my $profileFrame = new Gtk2::Frame(" Profile Directory ");
+   $profileFrame->add($profiledirVBox);
+   
+   # add frames to boxes to provide padding...
+   #
+   my $selectVBox = new Gtk2::VBox(FALSE, 0);
+   my $selectHBox = new Gtk2::HBox(FALSE, 0);
+   $selectVBox->pack_start($startupFrame, TRUE, TRUE, 5);
+   $selectVBox->pack_start($profileFrame, TRUE, TRUE, 0);
+   $selectHBox->pack_start($selectVBox, TRUE, TRUE, 10);
+   
    # add script and profile frame to container
    #
-   $configBox->pack_start($startupFrame, TRUE, TRUE, 0);
-   $configBox->pack_start($profiledirFrame, TRUE, TRUE, 0);
+   $configBox->pack_start($selectHBox, TRUE, TRUE, 0);
 
    # set action listeners...
    #
    $startupButton->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(shift @_, "StartupScript", $startupEntry) });
-   $profiledirButton->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(shift @_, "ProfileDir", $profiledirEntry) });
+   $profileButton->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(shift @_, "ProfileDir", $profileEntry) });
 
    # set startup script and profile directory fields...
    #
    $startupEntry->set_text( $model->getStartupScript() );
-   $profiledirEntry->set_text( $model->getProfileDir() );
+   $profileEntry->set_text( $model->getProfileDir() );
 
    #-#-#-#-#-#-#-#-#-#-#
    # Command Box       #
@@ -410,10 +419,22 @@ sub _constructView
    
    # create command buttons
    #
+   my $commandWidgets = new Gtk2::HButtonBox();
    $new = new_with_label Gtk2::Button("New Profile");
    $edit = new_with_label Gtk2::Button("Edit Profile");
-   $delete = new_with_label Gtk2::Button("Delete Profile(s)");
+   $delete = new_with_label Gtk2::Button("Delete Profile");
    $scan = new_with_label Gtk2::Button("Scan");
+   $commandWidgets->add($new);
+   $commandWidgets->add($edit);
+   $commandWidgets->add($delete);
+   $commandWidgets->add($scan);
+   $commandWidgets->set_spacing_default(5);
+   $commandWidgets->set_layout('spread');
+
+   my $commandHBox = new Gtk2::HBox(FALSE, 0);
+   my $commandVBox = new Gtk2::VBox(FALSE, 0);
+   $commandHBox->pack_start($commandWidgets, TRUE, TRUE, 10);
+   $commandVBox->pack_start($commandHBox, TRUE, TRUE, 0);
 
    # set action listeners...
    #
@@ -422,10 +443,7 @@ sub _constructView
    $delete->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(shift @_, $list); });
    $scan->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(shift @_, $list); });
 
-   $commandBox->pack_start($new, TRUE, TRUE, 0);
-   $commandBox->pack_start($edit, TRUE, TRUE, 0);
-   $commandBox->pack_start($delete, TRUE, TRUE, 0);
-   $commandBox->pack_start($scan, TRUE, TRUE, 0);
+   $commandBox->pack_start($commandVBox, TRUE, TRUE, 0);
 
    #-#-#-#-#-#-#-#-#-#-#
    # Profile Box       #
@@ -457,22 +475,29 @@ sub _constructView
 
    # create new up/down buttons to move profiles in list
    #
-   $buttonBox = new Gtk2::VBox(FALSE, 5);
+   my $buttonBox = new Gtk2::VButtonBox();
    $up = new_with_label Gtk2::Button("up");
    $down = new_with_label Gtk2::Button("down");
-
    $buttonBox->pack_start($up, FALSE, FALSE, 0);
    $buttonBox->pack_end($down, FALSE, FALSE, 0);
+   $buttonBox->set_layout('spread');
+   $buttonBox->set_spacing_default(5);
    
-   # add list and buttons to profileBox
-   #
-   $profileBox->pack_start($list, TRUE, TRUE, 0);
-   $profileBox->pack_start($buttonBox, FALSE, FALSE, 0);
+   my $profileWidgets = new Gtk2::HBox(FALSE, 5);
+   $profileWidgets->pack_start($list, TRUE, TRUE, 0);
+   $profileWidgets->pack_start($buttonBox, FALSE, FALSE, 0);
+
+   my $profileHBox = new Gtk2::HBox(FALSE, 10);
+   my $profileVBox = new Gtk2::VBox(FALSE, 0);
+   $profileHBox->pack_start($profileWidgets, TRUE, TRUE, 10);
+   $profileVBox->pack_start($profileHBox, TRUE, TRUE, 5);
    
    # set action listeners...
    #
    $up->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(shift @_, $list); });
    $down->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(shift @_, $list); });
+
+   $profileBox->pack_start($profileVBox, TRUE, TRUE, 0);
 
    # Return newly created widgets to caller
    #
