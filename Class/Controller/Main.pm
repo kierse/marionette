@@ -11,10 +11,10 @@
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 #
 #   Subversion Info:
-#     $LastChangedBy: kierse $
-#     $Date: 2004-09-03 16:51:02 -0600 (Fri, 03 Sep 2004) $
-#     $Rev: 10 $
-#     $URL: svn+ssh://zeus/var/svn/wireless_app/trunk/Class/MainView.pm $
+#     $LastChangedBy$
+#     $Date$
+#     $Rev$
+#     $URL$
 #
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
