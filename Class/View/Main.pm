@@ -24,7 +24,6 @@ use strict; use warnings;
 
 use Gtk2::SimpleList;
 use Gtk2::SimpleMenu;
-use Error qw(:try);
 
 use Class::WirelessApp;
 use Class::Model;

@@ -54,8 +54,8 @@ sub new
 sub init
 {
    my ($I) = @_;
-
-   my %Utils = Class::WirelessApp->getModel()->getUtils();
+   my $model = Class::WirelessApp->getModel();
+   my %Utils = $model->getUtils();
 
    # determine the location of a few necessary utilities...
    #
@@ -63,13 +63,39 @@ sub init
    my $ifconfig = $Utils{"ifconfig"};
    my $dhcpcd = $Utils{"dhcpcd"};
 
-   throw Error::Simple("Error: Unable to execute utility 'iwconfig'.  Unable to proceed!") unless(-x $iwconfig);
-   throw Error::Simple("Error: Unable to execute utility 'ifconfig'.  Unable to proceed!") unless(-x $ifconfig);
-   throw Error::Simple("Error: Unable to execute utility 'dhcpcd'.  Unable to proceed!") unless(-x $dhcpcd);
+   throw Error::MissingResourceException("Error: Unable to execute utility 'iwconfig'.  Unable to proceed!") unless(-x $iwconfig);
+   throw Error::MissingResourceException("Error: Unable to execute utility 'ifconfig'.  Unable to proceed!") unless(-x $ifconfig);
+   throw Error::MissingResourceException("Error: Unable to execute utility 'dhcpcd'.  Unable to proceed!") unless(-x $dhcpcd);
    
    $I->{"iwconfig"} = $iwconfig;
    $I->{"ifconfig"} = $ifconfig;
    $I->{"dhcpcd"} = $dhcpcd;
+
+   # check if given interface is currently active
+   #
+   my $cmd = $I->{"ifconfig"};
+   my $result = `$cmd` or throw Error::ExecutionException("Unable to verify interface activity");
+   if($result =~ /$I->{"interface"}/gi)
+   {
+      # now that we know interface is active, try and find out
+      # if there is an active connection
+      # NOTE: the '-B' flag sent to the dhcpcd daemon requests a
+      # response.
+      #
+      $cmd = $I->{"dhcpcd"} . " -B " . $I->{"interface"} . " &> /dev/null";
+      $result = system($cmd) or throw Error::ExecutionException("Encountered an error while contacting dhcpcd daemon");
+      if($result/256 == 1)
+      {
+         print "dhcpcd daemon is running, attempting to gather information about access point!\n";
+         $cmd = $I->{"iwconfig"} . " " . $I->{"interface"};
+         `$cmd` =~ /essid\s?\:\s?\"?(\w+)\"?/gi or throw Error::ExecutionException("Unable to determine name of access point");
+         $model->setConnectedAP($1);
+
+         return;
+      }
+   }
+
+   print "No currently active connection!\n";
 }
 
 sub connect
@@ -134,6 +160,8 @@ sub disconnect
    my ($I) = @_;
 
    # terminate existing connection (if one exists)
+   # NOTE: sending '-k' flag to dhcpcd forces the daemon
+   # to release current ip address.
    #
    print $I->{"dhcpcd"} . " -k " . $I->{"interface"} . "\n";
    if( system($I->{"dhcpcd"}, "-k", $I->{"interface"}) < 0 )

@@ -114,6 +114,10 @@ sub init
    # perform a scan and look for available wireless access points...
    #
    $I->scan();
+
+   # request new connection object be created...
+   #
+   Class::WirelessApp->getConnection();
 }
 
 # The scan method is the source of the models power.  This is where

@@ -18,13 +18,11 @@
 #
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-package Exception;
+package Error::Exception;
 
 use strict; use warnings;
 
 use base qw(Error);
-use overload
-   '""' => \&print;
 
 # declare parent classes
 #
@@ -47,33 +45,33 @@ sub new
 
 1;#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-package IOException;
-use base qw(Exception);
+package Error::IOException;
+use base qw(Error::Exception);
 
 1;#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-package FileSystemException;
-use base qw(Exception);
+package Error::FileSystemException;
+use base qw(Error::Exception);
 
 1;#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-package MissingResourceException;
-use base qw(Exception);
+package Error::MissingResourceException;
+use base qw(Error::Exception);
 
 1;#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-package ExecutionException;
-use base qw(Exception);
+package Error::ExecutionException;
+use base qw(Error::Exception);
 
 1;#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-package IllegalParameterException;
-use base qw(Exception);
+package Error::IllegalParameterException;
+use base qw(Error::Exception);
 
 1;#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-package ParsingException;
-use base qw(Exception);
+package Error::ParsingException;
+use base qw(Error::Exception);
 
 1;#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 

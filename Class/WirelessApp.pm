@@ -24,6 +24,7 @@ use strict; use warnings;
 
 use Gtk2 '-init';
 use Gtk2::TrayIcon;
+use Error qw(:try);
 
 use Class::Model;
 use Class::View::Main;
