@@ -60,7 +60,7 @@ sub new
    $this->{"connected"}    = 0;
    $this->{"views"}        = (); # create empty array to store views
    $this->{"profiles"}     = {}; # create empty hash to store profiles
-   $this->{"config"}       = "";
+   $this->{"config"}       = {};
 
    return $this;
 }
@@ -112,6 +112,10 @@ sub init
       #
       throw Error::FileSystemException("Given profile directory does not have adequate read/write permissions") unless(-r $profileDir && -w $profileDir);
    }
+
+   # store location of config directory in config hash for later use
+   #
+   $I->{"config"}{"configDir"} = $configDir;
 
    # perform a scan and look for available wireless access points...
    #
@@ -177,49 +181,9 @@ sub scan
       #
       $Sid{$1} = $3;
 
-      # parse data
+      # parse data for this access point...
       #
-      my @BitRate;
-      map { 
-
-         # THIS SECTION NEEDS TO BE REWORKED!
-         #
-         if($_ =~ /address\s?\:\s?(.+)\s?/i)
-         {
-            $ApObject->set("address", $1);
-         }
-         elsif($_ =~ /essid\s?\:\s?\"?(.+[^\"])\"?\s?/i)
-         {
-            $ApObject->set("essid", $1);
-         }
-         elsif($_ =~ /protocol\s?\:\s?(.+)\s?/i)
-         {
-            $ApObject->set("protocol", $1);
-         }
-         elsif($_ =~ /mode\s?\:\s?(.+)\s?/i)
-         {
-            $ApObject->set("mode", $1);
-         }
-         elsif($_ =~ /frequency\s?\:\s?(.+)\s?/i)
-         {
-            $ApObject->set("frequency", $1);
-         }
-         elsif($_ =~ /quality|signal\slevel|noise\slevel/i)
-         {
-            if($_ =~ /quality\s?\:\s?(\d+\/\d+)/i) { $ApObject->set("quality", $1); }
-            if($_ =~ /signal\slevel\s?\:\s?(\-?\d+\sdbm)/i) { $ApObject->set("signalLevel", $1); }
-            if($_ =~ /noise\slevel\s?\:\s?(\-?\d+\sdbm)/i) { $ApObject->set("noiseLevel", $1); }
-         }
-         elsif($_ =~ /encryption\skey\s?\:\s?(.+)\s?/i)
-         {
-            $ApObject->set("encryption", $1);
-         }
-         elsif($_ =~ /bit\srate\s?\:\s?((\d\.?)+)/i)
-         {
-            push @BitRate, $1;
-         }
-      } split("\n", $ap);
-      $ApObject->set("bitRate", \@BitRate) if scalar @BitRate > 0;
+      $I->_parseScanData($ApObject, $ap);
 
       # address => data
       #
@@ -238,18 +202,42 @@ sub scan
 sub scanConnectedAP
 {
    my ($I) = @_;
-
-   print "Scanning for changes in Connected AP...\n";
+   my %appConfigs = Class::WirelessApp->getConfig();
 
    # only attempt to scan if there is an active connection...
    #
-   return unless $I->isConnected();
-   
+   return FALSE unless $I->isConnected();
+
+   print "Scanning for changes in Connected AP...\n";
+
    # scan connected ap for any changes and capture results
    #
-   my $cmd = $I->{"config"}{"utils"}{"iwlist"} . " " . $I->{'interface'} . " scan";
-   my $result = `$cmd` or throw Error::ExecutionException("Scanning for wireless access points failed");
+   my $cmd = $I->{"config"}{"utils"}{"iwlist"} . " " . $I->{'interface'} . " scan > " . $I->{"config"}{"configDir"} . "/scan.cache &";
+   system($cmd) == 0 or throw Error::ExecutionException("Scanning for wireless access points failed");
 
+   # add new timeout to read scan results and update all data
+   # regarding connected access point...
+   #
+   Glib::Timeout->add(15000, sub { $I->updateConnectedAP() });
+
+   return TRUE;
+}
+
+sub updateConnectedAP
+{
+   my ($I) = @_;
+   
+   print "Updating Connected AP...\n";
+
+   # if cached text file containing scan results does not exist,
+   # return false
+   #
+   return FALSE if(-e $I->{"config"}{"configDir"} . "/scan.cache");
+   
+   open(RESULTS, "<", $I->{"config"}{"configDir"} . "/scan.cache");
+   my $result = join "", <RESULTS>;
+   close(RESULTS);
+   
    $result =~ s/(^.+\n)//;
    $result =~ s/(^\s+)//;
    $result =~ s/(\n\s+)/\n/g;
@@ -258,63 +246,25 @@ sub scanConnectedAP
 
    # using results returned from iwlist, populate aps hash
    #
-   my $profile = $I->getConnectedAP();
+   my $ApObject = $I->getConnectedAP();
    foreach my $ap (@Points)
    {
       next unless($ap ne "" and $ap =~ /essid\s?\:\s?\"?$I->{"connectedAp"}\"?\s?/gi);
 
       # parse data
       #
-      my @BitRate;
-      map { 
-
-         # THIS SECTION NEEDS TO BE REWORKED!
-         #
-         if($_ =~ /address\s?\:\s?(.+)\s?/i)
-         {
-            $profile->set("address", $1);
-         }
-         elsif($_ =~ /essid\s?\:\s?\"?(.+[^\"])\"?\s?/i)
-         {
-            $profile->set("essid", $1);
-         }
-         elsif($_ =~ /protocol\s?\:\s?(.+)\s?/i)
-         {
-            $profile->set("protocol", $1);
-         }
-         elsif($_ =~ /mode\s?\:\s?(.+)\s?/i)
-         {
-            $profile->set("mode", $1);
-         }
-         elsif($_ =~ /frequency\s?\:\s?(.+)\s?/i)
-         {
-            $profile->set("frequency", $1);
-         }
-         elsif($_ =~ /quality|signal\slevel|noise\slevel/i)
-         {
-            if($_ =~ /quality\s?\:\s?(\d+\/\d+)/i) { $profile->set("quality", $1); }
-            if($_ =~ /signal\slevel\s?\:\s?(\-?\d+\sdbm)/i) { $profile->set("signalLevel", $1); }
-            if($_ =~ /noise\slevel\s?\:\s?(\-?\d+\sdbm)/i) { $profile->set("noiseLevel", $1); }
-         }
-         elsif($_ =~ /encryption\skey\s?\:\s?(.+)\s?/i)
-         {
-            $profile->set("encryption", $1);
-         }
-         elsif($_ =~ /bit\srate\s?\:\s?((\d\.?)+)/i)
-         {
-            push @BitRate, $1;
-         }
-      } split("\n", $ap);
-      $profile->set("bitRate", \@BitRate) if scalar @BitRate > 0;
+      $I->_parseScanData($ApObject, $ap);
    }
 
    # notify all registered views that model has changed
    #
    $I->updateViews();
 
-   # NOTE: Must return true otherwise the timeout call will
-   # stop!
-   return TRUE
+   # remove calling timeout, data has been updated.  New timeout
+   # will be created if connection remains active and new scan is performed
+   # NOTE:  See Class::Model->scanConnectedAP for details
+   #
+   return FALSE;
 }
 
 sub getUtils
@@ -495,6 +445,12 @@ sub setConnectedAP()
    {
       throw Error::IllegalParameterException("Cannot be connected to specified access point, does not exists or is not within range");
    }
+
+   # create timeout to update connected ap data
+   # NOTE: read about timeouts and idle calls in missing functions section
+   # of Gtk2 Perl documentation at: http://gtk2-perl.sourceforge.net/doc/pod/Gtk2/api.html
+   #
+   Glib::Timeout->add(30000, sub { $I->scanConnectedAP() }) unless $I->{"connected"};
 
    # set connected flag to true
    #
@@ -704,8 +660,7 @@ sub exportProfiles
 sub clean
 {
    my ($I) = @_;
-   my %appConfig = Class::WirelessApp->getConfig();
-   my $configDir = $appConfig{"configDir"};
+   my $configDir = $I->{"config"}{"configDir"};
 
    # clean up model...
    #
@@ -745,6 +700,10 @@ sub clean
    # write them to disk.
    #
    $I->_writeProfiles();
+
+   # remove scan.cache file
+   #
+   unlink($I->{"config"}{"configDir"} . "/scan.cache");
 }
 
 # NOTE: Will need to add ability to scan currently connected access
@@ -755,6 +714,54 @@ sub clean
 ###################
 # private methods #
 ###################
+
+sub _parseScanData
+{
+   my ($I, $ApObject, $data) = @_;
+   my @BitRate;
+
+   map
+   { 
+      # THIS SECTION NEEDS TO BE REWORKED!
+      #
+      if($_ =~ /address\s?\:\s?(.+)\s?/i)
+      {
+         $ApObject->set("address", $1);
+      }
+      elsif($_ =~ /essid\s?\:\s?\"?(.+[^\"])\"?\s?/i)
+      {
+         $ApObject->set("essid", $1);
+      }
+      elsif($_ =~ /protocol\s?\:\s?(.+)\s?/i)
+      {
+         $ApObject->set("protocol", $1);
+      }
+      elsif($_ =~ /mode\s?\:\s?(.+)\s?/i)
+      {
+         $ApObject->set("mode", $1);
+      }
+      elsif($_ =~ /frequency\s?\:\s?(.+)\s?/i)
+      {
+         $ApObject->set("frequency", $1);
+      }
+      elsif($_ =~ /quality|signal\slevel|noise\slevel/i)
+      {
+         if($_ =~ /quality\s?\:\s?(\d+\/\d+)/i) { $ApObject->set("quality", $1); }
+         if($_ =~ /signal\slevel\s?\:\s?(\-?\d+\sdbm)/i) { $ApObject->set("signalLevel", $1); }
+         if($_ =~ /noise\slevel\s?\:\s?(\-?\d+\sdbm)/i) { $ApObject->set("noiseLevel", $1); }
+      }
+      elsif($_ =~ /encryption\skey\s?\:\s?(.+)\s?/i)
+      {
+         $ApObject->set("encryption", $1);
+      }
+      elsif($_ =~ /bit\srate\s?\:\s?((\d\.?)+)/i)
+      {
+         push @BitRate, $1;
+      }
+   } split("\n", $data);
+   
+   $ApObject->set("bitRate", \@BitRate) if scalar @BitRate > 0;
+}
 
 sub _loadProfiles
 {
@@ -874,8 +881,7 @@ sub _getEssids
 sub _generateDefaultConfig
 {
    my ($I) = @_;
-   my %appConfig = Class::WirelessApp->getConfig();
-   my $configDir = $appConfig{"configDir"};
+   my $configDir = $I->{"config"}{"configDir"};
 
    # determine the location of a few necessary utilities...
    #

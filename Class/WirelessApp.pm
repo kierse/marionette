@@ -111,7 +111,6 @@ sub run
    # NOTE: read about timeouts and idle calls in missing functions section
    # of Gtk2 Perl documentation at: http://gtk2-perl.sourceforge.net/doc/pod/Gtk2/api.html
    #
-   Glib::Timeout->add(30000, sub { $model->scanConnectedAP() });
 
    # start up gtk and wait for user input
    #
