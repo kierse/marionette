@@ -41,7 +41,7 @@ use Utility::Connection;
 my $model;
 my $mainView;
 my $connection;
-my %config;
+my %Config;
 
 sub new
 {
@@ -52,7 +52,7 @@ sub new
 
    # set config variables...
    #
-   %config = (
+   %Config = (
       "configDir" => $ENV{"HOME"} . "/.wireless_app",
       "images" => 
       {
@@ -89,7 +89,7 @@ sub run
 
    # create and initialize necessary objects
    #
-   $model = new Class::Model();
+   $model = new Class::Model($Config{"configDir"});
    $model->init();
 
    my $mainViewController = new Class::Controller::Main();
@@ -154,7 +154,7 @@ sub getConfig
 {
    my ($class) = @_;
 
-   return %config;
+   return %Config;
 }
 
 sub createProfileManagementView

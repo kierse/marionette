@@ -49,11 +49,32 @@ sub new
 sub init
 {
    my ($I) = @_;
+   my $model = Class::WirelessApp->getModel();
    my %appConfigs = Class::WirelessApp->getConfig();
 
    my $eventBox = new Gtk2::EventBox();
-   my $image = new_from_file Gtk2::Image($appConfigs{"images"}{"strength"}{"small"}[1]);
-   $eventBox->add($image);
+
+   my $strength;
+   if($model->isConnected())
+   {
+      my $accessPoint = $model->getConnectedAP();
+
+      # update connection strength image to reflect current
+      # data... Multiply decimal value by 4 to get a value on 
+      # a four point scale (ie between 0-3, 3 being 75-100%)
+      #
+      my $quality = eval($accessPoint->get("quality"));
+      my $num = ($quality != 0 && $quality < 0.25)
+         ? 1
+         : ($quality * 4);
+      $strength = new_from_file Gtk2::Image($appConfigs{"images"}{"strength"}{"small"}[$num]);
+   }
+   else
+   {
+      $strength = new_from_file Gtk2::Image($appConfigs{"images"}{"strength"}{"small"}[0]);
+   }
+
+   $eventBox->add($strength);
 
    # set event listeners on event box...
    #
@@ -62,7 +83,7 @@ sub init
    # store event box and image for later use...
    #
    $I->{"eventBox"} = $eventBox;
-   $I->{"image"} = $image;
+   $I->{"strength"} = $strength;
 
    return $eventBox;
 }
@@ -70,8 +91,25 @@ sub init
 sub update
 {
    my ($I) = @_;
+   my $model = Class::WirelessApp->getModel();
+   my %appConfigs = Class::WirelessApp->getConfig();
 
    print "Updating TrayView data...\n";
+   
+   # update connection strength image to reflect current
+   # data... Multiply decimal value by 4 to get a value on 
+   # a four point scale (ie between 0-3, 3 being 75-100%)
+   #
+   if( my $accessPoint = $model->getConnectedAP() )
+   {
+      my $quality = eval($accessPoint->get("quality"));
+      my $num = ($quality != 0 && $quality < 0.25)
+         ? 1
+         : ($quality * 4);
+      $I->{"strength"}->set_from_file($appConfigs{"images"}{"strength"}{"small"}[$num]);
+
+      print "tray: $num\n";
+   }
 }
 
 1;#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#

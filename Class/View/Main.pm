@@ -99,6 +99,7 @@ sub update
 {
    my ($I) = @_;
    my $model = Class::WirelessApp->getModel();
+   my %appConfigs = Class::WirelessApp->getConfig();
    my $list = $I->{"list"};
 
    print "Updating MainView data...\n";
@@ -114,6 +115,18 @@ sub update
       );
       $I->{"essid"}->set_label($accessPoint->get("essid"));
       $I->{"encryption"}->set_label($accessPoint->get("encryption"));
+
+      # update connection strength image to reflect current
+      # data... Multiply decimal value by 4 to get a value on 
+      # a four point scale (ie between 0-3, 3 being 75-100%)
+      #
+      my $quality = eval($accessPoint->get("quality"));
+      my $num = ($quality != 0 && $quality < 0.25)
+         ? 1
+         : ($quality * 4);
+      $I->{"strength"}->set_from_file($appConfigs{"images"}{"strength"}{"large"}[$num]);
+
+      print "main: $num\n";
    }
 
    # clear current list and repopulate with
@@ -492,7 +505,17 @@ sub _constructStatus
    #
    my $gVBox = new Gtk2::VBox(FALSE, 0);
    my $gHBox = new Gtk2::VBox(FALSE, 0);
-   my $strength = new_from_file Gtk2::Image($appConfigs{"images"}{"strength"}{"large"}[0]);
+
+   # update connection strength image to reflect current
+   # data... Multiply decimal value by 4 to get a value on 
+   # a four point scale (ie between 0-3, 3 being 75-100%)
+   #
+   my $quality = eval($accessPoint->get("quality"));
+   my $num = ($quality != 0 && $quality < 0.25)
+      ? 1
+      : ($quality * 4);
+   my $strength = new_from_file Gtk2::Image($appConfigs{"images"}{"strength"}{"large"}[$num]);
+   
    $gHBox->pack_start($strength, FALSE, FALSE, 0);
    $gVBox->pack_start($gHBox, FALSE, FALSE, 2);
    

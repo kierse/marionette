@@ -46,7 +46,7 @@ use constant FALSE => 0;
 #
 sub new
 {
-   my ($class) = @_;
+   my ($class, $configDir) = @_;
    my $this = {};
    
    # bless this object into given class 
@@ -61,6 +61,7 @@ sub new
    $this->{"views"}        = (); # create empty array to store views
    $this->{"profiles"}     = {}; # create empty hash to store profiles
    $this->{"config"}       = {};
+   $this->{"configDir"}    = $configDir;
 
    return $this;
 }
@@ -68,11 +69,10 @@ sub new
 sub init
 {
    my ($I) = @_;
-   my %appConfigs = Class::WirelessApp->getConfig();
 
    # determine if the config directory exists or not
    #
-   my $configDir = $appConfigs{"configDir"};
+   my $configDir = $I->{"configDir"};
    if(-d $configDir && -e "$configDir/config.xml")
    {
       # open configuration file and get config values
@@ -115,7 +115,7 @@ sub init
 
    # store location of config directory in config hash for later use
    #
-   $I->{"config"}{"configDir"} = $configDir;
+   $I->{"configDir"} = $configDir;
 
    # perform a scan and look for available wireless access points...
    #
@@ -201,8 +201,9 @@ sub scan
 
 sub scanConnectedAP
 {
-   my ($I) = @_;
+   my ($I, $interval) = @_;
    my %appConfigs = Class::WirelessApp->getConfig();
+   $interval ||= 15000;
 
    # only attempt to scan if there is an active connection...
    #
@@ -210,16 +211,19 @@ sub scanConnectedAP
 
    print "Scanning for changes in Connected AP...\n";
 
-   # scan connected ap for any changes and capture results
+   # scan connected ap and pipe results to scan.cache located in users config folder
    #
-   my $cmd = $I->{"config"}{"utils"}{"iwlist"} . " " . $I->{'interface'} . " scan > " . $I->{"config"}{"configDir"} . "/scan.cache &";
+   #my $cmd = $I->{"config"}{"utils"}{"iwlist"} . " " . $I->{'interface'} . " scan > " . $I->{"configDir"} . "/scan.cache 2> /dev/null &";
+   my $cmd = $I->{"config"}{"utils"}{"iwconfig"} . " " . $I->{'interface'} . " > " . $I->{"configDir"} . "/scan.cache 2> /dev/null &";
    system($cmd) == 0 or throw Error::ExecutionException("Scanning for wireless access points failed");
 
    # add new timeout to read scan results and update all data
    # regarding connected access point...
    #
-   Glib::Timeout->add(15000, sub { $I->updateConnectedAP() });
+   Glib::Timeout->add($interval, sub { $I->updateConnectedAP() });
 
+   # must return true in order to ensure timeout will be executed again
+   #
    return TRUE;
 }
 
@@ -232,9 +236,9 @@ sub updateConnectedAP
    # if cached text file containing scan results does not exist,
    # return false
    #
-   return FALSE if(-e $I->{"config"}{"configDir"} . "/scan.cache");
+   return FALSE unless(-e $I->{"configDir"} . "/scan.cache");
    
-   open(RESULTS, "<", $I->{"config"}{"configDir"} . "/scan.cache");
+   open(RESULTS, "<", $I->{"configDir"} . "/scan.cache");
    my $result = join "", <RESULTS>;
    close(RESULTS);
    
@@ -242,19 +246,23 @@ sub updateConnectedAP
    $result =~ s/(^\s+)//;
    $result =~ s/(\n\s+)/\n/g;
 
-   my @Points = split(/Cell\s\d+\s\-\s/i, $result);
+#   my @Points = split(/Cell\s\d+\s\-\s/i, $result);
+#
+#   # using results returned from iwlist, populate aps hash
+#   #
+#   my $ApObject = $I->getConnectedAP();
+#   foreach my $ap (@Points)
+#   {
+#      next unless($ap ne "" and $ap =~ /essid\s?\:\s?\"?$I->{"connectedAp"}\"?\s?/gi);
+#
+#      # parse data
+#      #
+#      $I->_parseScanData($ApObject, $ap);
+#   }
 
-   # using results returned from iwlist, populate aps hash
+   # parse data
    #
-   my $ApObject = $I->getConnectedAP();
-   foreach my $ap (@Points)
-   {
-      next unless($ap ne "" and $ap =~ /essid\s?\:\s?\"?$I->{"connectedAp"}\"?\s?/gi);
-
-      # parse data
-      #
-      $I->_parseScanData($ApObject, $ap);
-   }
+   $I->_parseScanData($I->getConnectedAP(), $result);
 
    # notify all registered views that model has changed
    #
@@ -464,6 +472,7 @@ sub setConnectedAP()
    $I->{"connected"} = 1;
 
    # notify all registered views that model has changed
+   # perform scan now to update data immediately
    #
    $I->updateViews();
 }
@@ -511,6 +520,8 @@ sub removeView
 sub updateViews
 {
    my ($I) = @_;
+
+   print "updating all registered views!\n";
 
    foreach my $view ( @{$I->{"views"}} )
    {
@@ -667,13 +678,12 @@ sub exportProfiles
 sub clean
 {
    my ($I) = @_;
-   my $configDir = $I->{"config"}{"configDir"};
+   my $configDir = $I->{"configDir"};
 
    # clean up model...
    #
    my $dump = $I->{"config"}{"_dump"} ||= 0;
    delete $I->{"config"}{"_dump"};
-   delete $I->{"config"}{"configDir"};
 
    # if config file has changed, dump file to disk...
    #
@@ -917,7 +927,6 @@ sub _generateDefaultConfig
    # set default config values
    #
    my %config = (
-      startupScript => "",
       profileDir => "$configDir/profiles",
       interface => $interface,
       utils => {
