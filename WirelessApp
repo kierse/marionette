@@ -22,11 +22,13 @@
 
 use strict; use warnings;
 
+use FindBin qw($Bin);
+use lib "$Bin/";
 use Class::WirelessApp;
 
 # create new WirelessApp
 #
-my $app = new Class::WirelessApp();
+my $app = new Class::WirelessApp($Bin);
 
 # start WirelessApp!
 #

@@ -45,7 +45,7 @@ my %Config;
 
 sub new
 {
-   my ($class) = @_;
+   my ($class, $path) = @_;
    my $this = {};
    
    bless $this, $class;
@@ -56,25 +56,27 @@ sub new
       "configDir" => $ENV{"HOME"} . "/.wireless_app",
       "images" => 
       {
-         "connected" => "images/connected.gif",
-         "available" => "images/available.gif",
+         "connected" => "$path/images/connected.gif",
+         "available" => "$path/images/available.gif",
          "strength"  => 
          {
             "small" => 
             [
-               "images/smallStrength0.png",
-               "images/smallStrength1.png",
-               "images/smallStrength2.png",
-               "images/smallStrength3.png",
-               "images/smallStrength4.png",
+               "$path/images/smallStrength0.png",
+               "$path/images/smallStrength1.png",
+               "$path/images/smallStrength2.png",
+               "$path/images/smallStrength3.png",
+               "$path/images/smallStrength4.png",
+               "$path/images/smallStrength5.png",
             ],
             "large" => 
             [
-               "images/largeStrength0.png",
-               "images/largeStrength1.png",
-               "images/largeStrength2.png",
-               "images/largeStrength3.png",
-               "images/largeStrength4.png",
+               "$path/images/largeStrength0.png",
+               "$path/images/largeStrength1.png",
+               "$path/images/largeStrength2.png",
+               "$path/images/largeStrength3.png",
+               "$path/images/largeStrength4.png",
+               "$path/images/largeStrength5.png",
             ],
          }
       }
@@ -142,11 +144,11 @@ sub getConnection
 {
    my ($class) = @_;
 
-   unless($connection && $connection->isa("Class::Connection"))
+   unless($connection && $connection->isa("Utility::Connection"))
    {
       Class::WirelessApp->createConnection();  
    }
-
+   
    return $connection;
 }
 

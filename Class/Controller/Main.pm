@@ -43,7 +43,21 @@ sub menuHandler
 {
    my ($I, $itemName, $itemNum, $item, @Args) = @_;
 
-   if($itemName eq "new")
+   if($itemName eq "disconnect_and_exit")
+   {
+      my $connection = Class::WirelessApp->getConnection();
+      
+      print "disconnect and exit caught!\n";
+      
+      # terminate connection
+      #
+      $connection->disconnect();
+
+      # exit program...
+      #
+      Gtk2->main_quit;
+   }
+   elsif($itemName eq "new")
    {
       print "menu option 'new' caught!\n";
    }

@@ -159,6 +159,8 @@ sub disconnect
 {
    my ($I) = @_;
 
+   print "Disconnecting from AccessPoint\n";
+
    # terminate existing connection (if one exists)
    # NOTE: sending '-k' flag to dhcpcd forces the daemon
    # to release current ip address.

@@ -125,8 +125,6 @@ sub update
          ? 1
          : ($quality * 4);
       $I->{"strength"}->set_from_file($appConfigs{"images"}{"strength"}{"large"}[$num]);
-
-      print "main: $num\n";
    }
 
    # clear current list and repopulate with
@@ -312,9 +310,14 @@ sub _constructView
       _File => {
 		   item_type => '<Branch>',
 		   children => [
+			   "_Disconnect & Quit" => {
+	   			callback_action => 0,
+               callback_data => "disconnect_and_exit",
+               extra_data => 'gtk-quit',
+			   },
 			   _Quit => {
    				callback => sub { Gtk2->main_quit; },
-	   			callback_action => 0,
+	   			callback_action => 1,
 		   		accelerator => '<ctrl>Q',
                item_type => '<StockItem>',
                extra_data => 'gtk-quit',
@@ -325,20 +328,20 @@ sub _constructView
 	   	item_type => '<Branch>',
          children => [
             '_New Profile' => {
-               callback_action => 1,
+               callback_action => 2,
                callback_data => "new",
                accelerator => '<ctrl>N',
                item_type => '<StockItem>',
                extra_data => 'gtk-new',
             },
             '_Edit Profile' => {
-               callback_action => 2,
+               callback_action => 3,
                callback_data => "edit",
                accelerator => '<ctrl>E',
             },
             '_Delete Profile' => {
                callback => sub { $I->{"controller"}->menuHandler(@_, $list); },
-               callback_action => 3,
+               callback_action => 4,
                callback_data => "delete",
                accelerator => '<ctrl>D',
                item_type => '<StockItem>',
@@ -348,11 +351,11 @@ sub _constructView
                item_type => '<Separator>',
             },
             'Import from...' => {
-               callback_action => 4,
+               callback_action => 5,
                callback_data => "import",
             },
             'Export to...' => {
-               callback_action => 5,
+               callback_action => 6,
                callback_data => "export",
             },
          ],
@@ -361,11 +364,11 @@ sub _constructView
          item_type => '<LastBranch>',
          children => [
             _About => {
-               callback_action => 6,
+               callback_action => 7,
                callback_data => "about",
             },
             _Help => {
-               callback_action => 7,
+               callback_action => 8,
                callback_data => "help",
                accelerator => '<ctrl>H',
             },
@@ -510,10 +513,17 @@ sub _constructStatus
    # data... Multiply decimal value by 4 to get a value on 
    # a four point scale (ie between 0-3, 3 being 75-100%)
    #
-   my $quality = eval($accessPoint->get("quality"));
-   my $num = ($quality != 0 && $quality < 0.25)
-      ? 1
-      : ($quality * 4);
+   my $num = 5;
+   if($model->isConnected())
+   {
+      my $accessPoint = $model->getConnectedAP();
+      my $quality = eval($accessPoint->get("quality"));
+
+      $num = ($quality != 0 && $quality < 0.25)
+         ? 1
+         : ($quality * 4);
+   }
+
    my $strength = new_from_file Gtk2::Image($appConfigs{"images"}{"strength"}{"large"}[$num]);
    
    $gHBox->pack_start($strength, FALSE, FALSE, 0);

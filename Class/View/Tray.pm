@@ -54,26 +54,23 @@ sub init
 
    my $eventBox = new Gtk2::EventBox();
 
-   my $strength;
+   # update connection strength image to reflect current
+   # data... Multiply decimal value by 4 to get a value on 
+   # a four point scale (ie between 0-3, 3 being 75-100%)
+   #
+   my $num = 5;
    if($model->isConnected())
    {
       my $accessPoint = $model->getConnectedAP();
-
-      # update connection strength image to reflect current
-      # data... Multiply decimal value by 4 to get a value on 
-      # a four point scale (ie between 0-3, 3 being 75-100%)
-      #
       my $quality = eval($accessPoint->get("quality"));
-      my $num = ($quality != 0 && $quality < 0.25)
+
+      $num = ($quality != 0 && $quality < 0.25)
          ? 1
          : ($quality * 4);
-      $strength = new_from_file Gtk2::Image($appConfigs{"images"}{"strength"}{"small"}[$num]);
-   }
-   else
-   {
-      $strength = new_from_file Gtk2::Image($appConfigs{"images"}{"strength"}{"small"}[0]);
    }
 
+   my $strength = new_from_file Gtk2::Image($appConfigs{"images"}{"strength"}{"small"}[$num]);
+   
    $eventBox->add($strength);
 
    # set event listeners on event box...
@@ -107,8 +104,6 @@ sub update
          ? 1
          : ($quality * 4);
       $I->{"strength"}->set_from_file($appConfigs{"images"}{"strength"}{"small"}[$num]);
-
-      print "tray: $num\n";
    }
 }
 
