@@ -11,6 +11,14 @@
 #                   default implementations for required methods.
 #
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+#
+#   Subversion Info:
+#     $LastChangedBy$
+#     $Date$
+#     $Rev$
+#     $URL$
+#
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
 package Class::View;
 
