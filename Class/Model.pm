@@ -406,13 +406,15 @@ sub destroyProfile
    #
    if(exists $I->{"profiles"}{$name})
    {
-      # delete profile from disk...
-      #
-      my $file = $I->{"profileDir"} . "/" . $name . ".xml";
-      unlink($file) if(-e $file);
+#      # delete profile from disk...
+#      #
+#      my $file = $I->{"config"}{"profileDir"} . "/" . $name . ".xml";
+#      unlink($file) if(-e $file);
    
       return delete($I->{"profiles"}{$name});
    }
+
+   return undef;
 }
 
 sub importProfiles
@@ -585,19 +587,19 @@ sub _loadProfiles
    #
    opendir(PROFILES, $I->{"config"}{"profileDir"}) or 
       throw Error::Simple("Unable to open '" . $I->{"config"}{"profileDir"} . "' for import");
-   my @files = readdir PROFILES;
+   my @Files = readdir PROFILES;
    closedir(PROFILES);
 
    # if there are no files in the profile directory, exit method
    #
-   return 1 if(scalar @files == 0);
+   return 1 if(scalar @Files == 0);
 
    my $parser = new Data::DumpXML::Parser(Blesser => sub {});
    
    # loop through files and load xml data. Pass data through
    # Data::DumpXML::Parser object to get AccessPointProfile objects.
    #
-   foreach my $file (@files)
+   foreach my $file (@Files)
    {
       next unless $file =~ /\.xml$/i;
       my $object = $parser->parsefile($I->{"config"}{"profileDir"} . "/" . $file) or
@@ -624,8 +626,26 @@ sub _writeProfiles
 {
    my ($I) = @_;
    
+   # get list of profiles in profileDir
+   #
+   opendir(PROFILES, $I->{"config"}{"profileDir"}) or 
+      throw Error::Simple("Unable to open '" . $I->{"config"}{"profileDir"} . "' for import");
+   my %Files = map { $_ => $_ } readdir PROFILES;
+   closedir(PROFILES);
+
+   # remove '.' and  '..' from files list...
+   #
+   delete $Files{'.'};
+   delete $Files{'..'};
+
    foreach my $ap ($I->getProfiles())
    {
+      # first, remove current access point from
+      # list of files in profile directory so it
+      # won't get deleted!
+      #
+      delete $Files{$ap->get("name") . ".xml"};
+   
       # this profile does not need to be dumped
       # if it hasn't been modified
       #
@@ -643,6 +663,14 @@ sub _writeProfiles
       open(PROFILE, ">", $file) or throw Error::Simple("Unable to write profiles to '" . $I->{"config"}{"profileDir"} .  "' for export");
       print PROFILE $xml;
       close(PROFILE);
+   }
+
+   # check files hash, any profile names still in the hash
+   # have been removed by the user, delete file from disk
+   #
+   foreach my $file (keys %Files)
+   {
+      unlink($I->{"config"}{"profileDir"} . "/" . $file);
    }
 }
 

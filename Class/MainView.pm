@@ -350,7 +350,7 @@ sub _constructCommandBox
    #
    $new->signal_connect("clicked", \&_buttonListener);
    $edit->signal_connect("clicked", \&_buttonListener);
-   $delete->signal_connect("clicked", \&_buttonListener, $I->{"profileList"});
+   $delete->signal_connect("clicked", \&_buttonListener, $I);
    $scan->signal_connect("clicked", \&_buttonListener);
 
    $commandBox->pack_start($new, TRUE, TRUE, 0);
@@ -457,19 +457,33 @@ sub _buttonListener
    }
    elsif($button->get_label() eq "Delete")
    {
-      my ($list) = @args;
-
-      print "delete button click caught!\n";
-      print "test " . $list . "\n";
-      exit;
+      my ($I) = @args;
+      my $list = $I->{"profileList"};
 
       # get list of selected profiles...
       #
-      my @rows = $list->get_selected_indicies();
+      my @Rows = $list->get_selected_indices();
 
-      # get data for selected profiles...
+      # exit handler if user didn't have any profiles 
+      # selected...
       #
-      my $data = $list->get_row_data_from_path(new_from_indicies Gtk2::TreePath(@rows));
+      return if(scalar @Rows == 0);
+
+      # get data for selected profiles and remove from 
+      # model and profile list
+      #
+      for(my $i = 0; $i < scalar @Rows; $i++)
+      {
+         my @Ap = @{ $list->{data}[$Rows[$i]] }; # get profile data...
+print join "\n", @Ap;
+exit;
+         
+         $model->destroyProfile($Ap[1]);   # $ap[1] contains profile name
+         
+         # remove profile from list
+         #
+         splice @{$list->{data}}, $Rows[$i], 1;
+      }
    }
    elsif($button->get_label() eq "Scan")
    {
