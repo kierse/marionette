@@ -162,6 +162,59 @@ sub confirmAction
    }
 }
 
+sub fileSelection
+{
+   my ($I, $title, %Params) = @_;
+
+#   my $selector = new Gtk2::FileSelection($title);
+#   
+#   # if user provided a desired starting path, set it
+#   #
+#   $selector->set_filename($Params{"path"}) if exists $Params{"path"};
+#
+#   # if user provided a match pattern for directory items, set it
+#   #
+#   $selector->complete($Params{"pattern"}) if exists $Params{"pattern"};
+#
+#   # check if users wants file operation buttons displayed...
+#   #
+#   if(exists $Params{"fileops"})
+#   {
+#      $Params{"fileops"}
+#         ? $selector->show_fileop_buttons()
+#         : $selector->hide_fileop_buttons();
+#   }
+#
+#   # set signal handlers...
+#   #
+#   
+#   $selector->show();
+
+   my $chooser = new Gtk2::FileChooserDialog(
+      "Test File Chooser",
+      $I->{"window"},
+      'open',
+      'gtk-ok' => 'ok', 
+      'gtk-cancel' => 'cancel',
+   );
+
+   # Ensure that the dialog box is destroyed when the user responds.
+   #
+   $chooser->signal_connect (response => sub {});
+   
+   if('ok' eq $chooser->run())
+   {
+      $chooser->destroy();
+      print $chooser->get_filename();
+
+   }
+   else
+   {
+      $chooser->destroy();
+      return 0;
+   }
+}
+
 ##################
 # setter methods #
 ##################
@@ -341,8 +394,8 @@ sub _constructView
 
    # set action listeners...
    #
-   $startupButton->signal_connect("clicked", \&_buttonListener, $startupEntry);
-   $profiledirButton->signal_connect("clicked", \&_buttonListener, $profiledirEntry);
+   $startupButton->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(shift @_, "StartupScript", $startupEntry) });
+   $profiledirButton->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(shift @_, "ProfileDir", $profiledirEntry) });
 
    # set startup script and profile directory fields...
    #

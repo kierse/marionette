@@ -39,6 +39,11 @@ sub new
    return $this;
 }
 
+sub menuHandler
+{
+   my ($I, $item, @Args) = @_;
+}
+
 sub buttonHandler
 {
    my ($I, $button, @Args) = @_;
@@ -47,8 +52,33 @@ sub buttonHandler
 
    if($button->get_label() eq "Browse")
    {
-      print "browse button click caught!\n";
-      $Args[0]->set_text("Change text!");
+      my ($var, $textField) = @_;
+      
+      #print "browse button click caught!\n";
+      #$Args[0]->set_text("Change text!");
+
+      my %Params;
+      if($var eq "StartupScript")
+      {
+         print "update startupScript path caught!\n";
+         %Params = (
+            path => $model->getStartupScript(),
+            fileops => 1,
+         );
+      }
+      else
+      {
+         print "update profileDir path caught!\n";
+         %Params = (
+            path => $model->getProfileDir(),
+            fileops => 1,
+         );
+      }
+
+      $mainView->fileSelection(
+         "File Selector", 
+         %Params,
+      );
    }
    elsif($button->get_label() eq "New Profile")
    {
@@ -57,6 +87,8 @@ sub buttonHandler
    elsif($button->get_label() eq "Edit Profile")
    {
       print "edit button click caught!\n";
+
+      my $management = Class::WirelessApp->createProfileManagementView();
    }
    elsif($button->get_label() eq "Delete Profile(s)")
    {
@@ -71,10 +103,6 @@ sub buttonHandler
       #
       return if(scalar @Rows == 0);
 
-      # prompt user to confirm delete action
-      #
-      return unless($mainView->confirmAction("Confirm Delete", "Are you sure you want to delete the selected profile(s)?"));
-   
       # get data for selected profiles and remove from 
       # model and profile list
       # Note: have to reverse selected rows list so that profiles
@@ -85,6 +113,11 @@ sub buttonHandler
       for(my $i = 0; $i < scalar @Rows; $i++)
       {
          my @Ap = @{ $list->{data}[$Rows[$i]] }; # get profile data...
+
+         # prompt user to confirm delete action
+         #
+         next unless($mainView->confirmAction("Confirm Delete", "Are you sure you want to delete the '" . $Ap[1] . "' profile?"));
+   
          $model->destroyProfile($Ap[1]);   # $ap[1] contains profile name
          
          # remove profile from list
