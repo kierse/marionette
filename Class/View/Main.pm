@@ -71,12 +71,12 @@ sub init
    
    # generate all widgets
    #
-   my ($menu, $shell, $command, $profile) = $I->_constructView();
+   my ($menu, $status, $command, $profile) = $I->_constructView();
 
    # add all widgets to main box...
    #
    $mainBox->pack_start($menu->{widget}, FALSE, FALSE, 0);
-   $mainBox->pack_start($shell, FALSE, FALSE, 10);
+   $mainBox->pack_start($status, FALSE, FALSE, 10);
    $mainBox->pack_start($command, FALSE, FALSE, 0);
    $mainBox->pack_start($profile, TRUE, TRUE, 5);
 
@@ -103,6 +103,17 @@ sub update
    my $list = $I->{"list"};
 
    print "Updating MainView data...\n";
+
+   # update connection status information
+   #
+   my $accessPoint = $model->getConnectedAP();
+   $I->{"status"}->set_label(
+      $model->isConnected()
+         ? "Connected"
+         : "Disconnected"
+   );
+   $I->{"essid"}->set_label($accessPoint->get("essid"));
+   $I->{"encryption"}->set_label($accessPoint->get("encryption"));
 
    # clear current list and repopulate with
    # new profile data from model...
@@ -274,8 +285,6 @@ sub _constructView
    # declare all interactive widgets here (buttons, text fields, etc)
    # as some will be need to be used when signal handlers are created
    #
-   my ($startupEntry, $startupButton);
-   my ($profileEntry, $profileButton);
    my ($new, $edit, $delete, $scan);
    my ($list, $up, $down);
 
@@ -356,69 +365,17 @@ sub _constructView
       menu_tree => $menu_tree,
       default_callback => sub { $I->{"controller"}->menuHandler(@_); },
    );
+
+   #-#-#-#-#-#-#-#-#-#-#
+   # Status Box        #
+   #-#-#-#-#-#-#-#-#-#-#
+
+   my $statusFrame = $I->_constructStatus($model->getConnectedAP());
+   my $statusVBox = new Gtk2::VBox(FALSE, 0);
+   my $statusBox = new Gtk2::HBox(FALSE, 0);
+   $statusVBox->pack_start($statusFrame, TRUE, TRUE, 0);
+   $statusBox->pack_start($statusVBox, TRUE, TRUE, 10);
          
-   #-#-#-#-#-#-#-#-#-#-#
-   # Script Box        #
-   #-#-#-#-#-#-#-#-#-#-#
-
-   my $configBox = new Gtk2::VBox(TRUE, 5);
-   
-   # layout startup script widgets...
-   #
-   my $scriptWidgets = new Gtk2::HBox(FALSE, 5);
-   $startupEntry = new Gtk2::Entry();
-   $startupEntry->set_editable(FALSE);
-   $startupButton = new_with_label Gtk2::Button("Browse");
-   $scriptWidgets->pack_start($startupEntry, TRUE, TRUE, 0);
-   $scriptWidgets->pack_start($startupButton, FALSE, FALSE, 0);
-   
-   my $startupHBox = new Gtk2::HBox(FALSE, 0);
-   my $startupVBox = new Gtk2::VBox(FALSE, 0);
-   $startupHBox->pack_start($scriptWidgets, TRUE, TRUE, 10);
-   $startupVBox->pack_start($startupHBox, TRUE, TRUE, 10);
-
-   my $startupFrame = new Gtk2::Frame(" Startup Script ");
-   $startupFrame->add($startupVBox);
-   
-   # layout profile dir widgets...
-   #
-   my $profiledirWidgets = new Gtk2::HBox(FALSE, 5);
-   $profileEntry = new Gtk2::Entry();
-   $profileEntry->set_editable(FALSE);
-   $profileButton = Gtk2::Button->new_with_label("Browse");
-   $profiledirWidgets->pack_start($profileEntry, TRUE, TRUE, 0);
-   $profiledirWidgets->pack_start($profileButton, FALSE, FALSE, 0);
-
-   my $profiledirHBox = new Gtk2::HBox(FALSE, 0);
-   my $profiledirVBox = new Gtk2::VBox(FALSE, 0);
-   $profiledirHBox->pack_start($profiledirWidgets, TRUE, TRUE, 10);
-   $profiledirVBox->pack_start($profiledirHBox, TRUE, TRUE, 10);
-   
-   my $profileFrame = new Gtk2::Frame(" Profile Directory ");
-   $profileFrame->add($profiledirVBox);
-   
-   # add frames to boxes to provide padding...
-   #
-   my $selectVBox = new Gtk2::VBox(FALSE, 0);
-   my $selectHBox = new Gtk2::HBox(FALSE, 0);
-   $selectVBox->pack_start($startupFrame, TRUE, TRUE, 5);
-   $selectVBox->pack_start($profileFrame, TRUE, TRUE, 0);
-   $selectHBox->pack_start($selectVBox, TRUE, TRUE, 10);
-   
-   # add script and profile frame to container
-   #
-   $configBox->pack_start($selectHBox, TRUE, TRUE, 0);
-
-   # set action listeners...
-   #
-   $startupButton->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(shift @_, "StartupScript", $startupEntry) });
-   $profileButton->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(shift @_, "ProfileDir", $profileEntry) });
-
-   # set startup script and profile directory fields...
-   #
-   #$startupEntry->set_text( $model->getStartupScript() );
-   $profileEntry->set_text( $model->getProfileDir() );
-
    #-#-#-#-#-#-#-#-#-#-#
    # Command Box       #
    #-#-#-#-#-#-#-#-#-#-#
@@ -511,7 +468,58 @@ sub _constructView
 
    # Return newly created widgets to caller
    #
-   return ($menu, $configBox, $commandBox, $profileBox);
+   return ($menu, $statusBox, $commandBox, $profileBox);
+}
+
+sub _constructStatus
+{
+   my ($I, $accessPoint) = @_;
+   my $model = Class::WirelessApp->getModel();
+   my $status = new Gtk2::Label("Disconnected");
+   my $ap = new Gtk2::Label();
+   my $encryption = new Gtk2::Label();
+
+   my $strength = new_from_file Gtk2::Image('images/largeStrength.png');
+   if($model->isConnected())
+   {
+      $status->set_label("Connected");
+      $ap->set_label($accessPoint->get("essid"));
+      $encryption->set_label($accessPoint->get("encryption"));
+   }
+   
+   # create table and add all created widgets...
+   #
+   my $layout = new Gtk2::Table(3, 3, FALSE);
+   $layout->attach($strength, 0, 1, 0, 3, "fill", "fill", 0, 0);
+
+   # add status widgets...
+   #
+   $layout->attach(new Gtk2::Label("Status:"), 1, 2, 0, 1, "fill", "fill", 0, 0);
+   $layout->attach($status, 2, 3, 0, 1, "fill", "fill", 0, 0);
+
+   # add access point name widgets...
+   #
+   $layout->attach(new Gtk2::Label("Access Point:"), 1, 2, 1, 2, "fill", "fill", 0, 0);
+   $layout->attach($ap, 2, 3, 1, 3, "fill", "fill", 0, 0);
+
+   # add encryption widgets...
+   #
+   $layout->attach(new Gtk2::Label("Encryption:"), 1, 2, 2, 3, "fill", "fill", 0, 0);
+   $layout->attach($encryption, 2, 3, 2, 3, "fill", "fill", 0, 0);
+   
+   # create new frame...
+   #
+   my $frame = new Gtk2::Frame(" Status ");
+   $frame->add($layout);
+
+   # save labels for later use...
+   #
+   $I->{"strength"} = $strength;
+   $I->{"status"} = $status;
+   $I->{"essid"} = $ap;
+   $I->{"encryption"} = $encryption;
+
+   return $frame;
 }
 
 sub _openFileSelector

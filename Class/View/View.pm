@@ -49,6 +49,8 @@ sub hide
 {
    my ($I) = @_;
 
+   print "Hiding MainView!\n";
+
    $I->{"window"}->hide_all();
 }
 
@@ -56,6 +58,8 @@ sub show
 {
    my ($I) = @_;
 
+   print "Showing MainView!\n";
+   
    $I->{"window"}->show_all();
 }
 

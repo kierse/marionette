@@ -64,20 +64,16 @@ sub run
    $mainView = new Class::View::Main($mainViewController);
    $mainView->init();
 
-   my $tray = new Gtk2::TrayIcon("tray");
-   #my $pix = new_from_file Gtk2::Image('/home/kierse/working/wireless_app/trunk/images/toolbar.gif');
-   #my $label = new Gtk2::Label(":)");
-   #$tray->add($label);
-   #$tray->add($pix);
-
    my $trayViewController = new Class::Controller::Tray();
    my $trayView = new Class::View::Tray($trayViewController);
+   my $tray = new Gtk2::TrayIcon("tray");
    $tray->add($trayView->init());
    
    $tray->show_all();
 
-   # register new Main view with model...
+   # register new views with model...
    #
+   $model->registerView($trayView);
    $model->registerView($mainView);
 
    # start up gtk and wait for user input
