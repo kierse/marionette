@@ -1,0 +1,4 @@
+- update model to pass only objects, no more building custom hashes from existing object data.
+- have to put images somewhere other than .wireless_app folder
+- create a config object and move config data from hash in model to its own object
+- move connected ap data to connection object and let it maintain the data

@@ -1,0 +1,7 @@
+- remove all code and any referencs to startupScript
+- pipe all error messages from system calls to /dev/null like so:
+- finish error handler
+
+   /sbin/iwconfig 2> /dev/null
+
+   this will allow me to capture data sent to stdout and hide any data sent to stderr

@@ -1,0 +1,31 @@
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+#
+# Marionette Roadmap
+# ------------------
+#
+# Version:  1.0
+# Date:     10/12/2004
+# Author:   Kier Elliott
+#
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
+Roadmap-to-Release
+------------------
+
+0.1.0 : Current
+---------------
+- basic functionality
+- ability to delete profiles
+- ability to select profile and connect to access point
+- ability to scan for & connect to new access points
+
+
+Method to rank/determine connection priority
+
+Views for creating/editing profiles
+Views for help and about
+
+import/export profile functionality
+
+finish documenting code
+Pod documentation
