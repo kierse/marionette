@@ -41,6 +41,7 @@ sub new
    # variable using given reference
    #
    $this->{"controller"} = $controller;
+   $this->{"visible"} = 1;
 
    return $this;
 }
@@ -50,7 +51,8 @@ sub hide
    my ($I) = @_;
 
    print "Hiding MainView!\n";
-
+   
+   $I->{"visible"} = 0;
    $I->{"window"}->hide_all();
 }
 
@@ -60,7 +62,15 @@ sub show
 
    print "Showing MainView!\n";
    
+   $I->{"visible"} = 1;
    $I->{"window"}->show_all();
+}
+
+sub isVisible
+{
+   my ($I) = @_;
+
+   return $I->{"visible"};
 }
 
 # this method MUST be updated in each child class

@@ -35,10 +35,6 @@ sub new
 
    bless $this, $class;   
 
-   # create new flag to indicate display status of main view
-   #
-   $this->{"visible"} = 1;
-   
    return $this;
 }
 
@@ -47,16 +43,9 @@ sub eventHandler
    my ($I, $data, $event, @Args) = @_;
    my $mainView = Class::WirelessApp->getMainView();
    
-   if($I->{"visible"})
-   {
-      $mainView->hide();
-      $I->{"visible"} = 0;
-   }
-   else
-   {
-      $mainView->show();
-      $I->{"visible"} = 1;
-   }
+   $mainView->isVisible()
+      ? $mainView->hide()
+      : $mainView->show();
 }
 
 1;#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#

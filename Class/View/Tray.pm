@@ -70,6 +70,8 @@ sub init
 sub update
 {
    my ($I) = @_;
+
+   print "Updating TrayView data...\n";
 }
 
 1;#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#

@@ -34,6 +34,8 @@ use Error::Exception;
 
 # global variables
 #
+use constant TRUE => 1;
+use constant FALSE => 0;
 
 ##################
 # public methods #
@@ -231,6 +233,88 @@ sub scan
    $I->updateViews();
 
    return %Sid;
+}
+
+sub scanConnectedAP
+{
+   my ($I) = @_;
+
+   print "Scanning for changes in Connected AP...\n";
+
+   # only attempt to scan if there is an active connection...
+   #
+   return unless $I->isConnected();
+   
+   # scan connected ap for any changes and capture results
+   #
+   my $cmd = $I->{"config"}{"utils"}{"iwlist"} . " " . $I->{'interface'} . " scan";
+   my $result = `$cmd` or throw Error::ExecutionException("Scanning for wireless access points failed");
+
+   $result =~ s/(^.+\n)//;
+   $result =~ s/(^\s+)//;
+   $result =~ s/(\n\s+)/\n/g;
+
+   my @Points = split(/Cell\s\d+\s\-\s/i, $result);
+
+   # using results returned from iwlist, populate aps hash
+   #
+   my $profile = $I->getConnectedAP();
+   foreach my $ap (@Points)
+   {
+      next unless($ap ne "" and $ap =~ /essid\s?\:\s?\"?$I->{"connectedAp"}\"?\s?/gi);
+
+      # parse data
+      #
+      my @BitRate;
+      map { 
+
+         # THIS SECTION NEEDS TO BE REWORKED!
+         #
+         if($_ =~ /address\s?\:\s?(.+)\s?/i)
+         {
+            $profile->set("address", $1);
+         }
+         elsif($_ =~ /essid\s?\:\s?\"?(.+[^\"])\"?\s?/i)
+         {
+            $profile->set("essid", $1);
+         }
+         elsif($_ =~ /protocol\s?\:\s?(.+)\s?/i)
+         {
+            $profile->set("protocol", $1);
+         }
+         elsif($_ =~ /mode\s?\:\s?(.+)\s?/i)
+         {
+            $profile->set("mode", $1);
+         }
+         elsif($_ =~ /frequency\s?\:\s?(.+)\s?/i)
+         {
+            $profile->set("frequency", $1);
+         }
+         elsif($_ =~ /quality|signal\slevel|noise\slevel/i)
+         {
+            if($_ =~ /quality\s?\:\s?(\d+\/\d+)/i) { $profile->set("quality", $1); }
+            if($_ =~ /signal\slevel\s?\:\s?(\-?\d+\sdbm)/i) { $profile->set("signalLevel", $1); }
+            if($_ =~ /noise\slevel\s?\:\s?(\-?\d+\sdbm)/i) { $profile->set("noiseLevel", $1); }
+         }
+         elsif($_ =~ /encryption\skey\s?\:\s?(.+)\s?/i)
+         {
+            $profile->set("encryption", $1);
+         }
+         elsif($_ =~ /bit\srate\s?\:\s?((\d\.?)+)/i)
+         {
+            push @BitRate, $1;
+         }
+      } split("\n", $ap);
+      $profile->set("bitRate", \@BitRate) if scalar @BitRate > 0;
+   }
+
+   # notify all registered views that model has changed
+   #
+   $I->updateViews();
+
+   # NOTE: Must return true otherwise the timeout call will
+   # stop!
+   return TRUE
 }
 
 sub getUtils
