@@ -16,7 +16,7 @@
 #   Subversion Info:
 #     $LastChangedBy$
 #     $Date$
-#     $Revision$
+#     $Rev$
 #     $URL$
 #
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
