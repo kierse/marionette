@@ -87,7 +87,7 @@ sub init
       if($result/256 == 1)
       {
          print "dhcpcd daemon is running, attempting to gather information about access point!\n";
-         $cmd = $I->{"iwconfig"} . " " . $I->{"interface"};
+         $cmd = $I->{"iwconfig"} . " " . $I->{"interface"} . " 2> /dev/null";
          `$cmd` =~ /essid\s?\:\s?\"?(\w+)\"?/gi or throw Error::ExecutionException("Unable to determine name of access point");
          $model->setConnectedAP($1);
 

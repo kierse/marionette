@@ -89,7 +89,7 @@ sub run
 
    # create and initialize necessary objects
    #
-   $model = new Class::Model("wlan0");
+   $model = new Class::Model();
    $model->init();
 
    my $mainViewController = new Class::Controller::Main();
@@ -188,7 +188,7 @@ sub createConnection
 {
    my ($class) = @_;
 
-   $connection = new Utility::Connection("wlan0");
+   $connection = new Utility::Connection($model->getInterface());
    $connection->init();
 
    return $connection;

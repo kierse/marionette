@@ -46,7 +46,7 @@ use constant FALSE => 0;
 #
 sub new
 {
-   my ($class, $interface) = @_;
+   my ($class) = @_;
    my $this = {};
    
    # bless this object into given class 
@@ -55,7 +55,7 @@ sub new
 
    # initialize all object variables
    #
-   $this->{"interface"}    = $interface;
+   $this->{"interface"}    = "";
    $this->{"connectedAp"}  = "";
    $this->{"connected"}    = 0;
    $this->{"views"}        = (); # create empty array to store views
@@ -89,7 +89,7 @@ sub init
    {
       # generate default config entries
       #
-      $I->_generateDefaultConfig();
+      $I->_generateDefaultConfig($configDir);
    }
 
    # determine if the given profile directory exists and has read/write
@@ -149,7 +149,7 @@ sub scan
    # scan for available wireless access points using iwlist
    # and capture results
    #
-   my $cmd = $I->{"config"}{"utils"}{"iwlist"} . " " . $I->{'interface'} . " scan";
+   my $cmd = $I->{"config"}{"utils"}{"iwlist"} . " " . $I->{'interface'} . " scan 2> /dev/null";
    my $result = `$cmd` or throw Error::ExecutionException("Scanning for wireless access points failed");
 
    $result =~ s/(^.+\n)//;
@@ -433,6 +433,13 @@ sub getProfileDir
    return $I->{"config"}{"profileDir"};
 }
 
+sub getInterface
+{
+   my ($I) = @_;
+
+   return $I->{"config"}{"interface"};
+}
+
 sub setConnectedAP()
 {
    my ($I, $name) = @_;
@@ -666,6 +673,7 @@ sub clean
    #
    my $dump = $I->{"config"}{"_dump"} ||= 0;
    delete $I->{"config"}{"_dump"};
+   delete $I->{"config"}{"configDir"};
 
    # if config file has changed, dump file to disk...
    #
@@ -703,7 +711,7 @@ sub clean
 
    # remove scan.cache file
    #
-   unlink($I->{"config"}{"configDir"} . "/scan.cache");
+   unlink("$configDir/scan.cache");
 }
 
 # NOTE: Will need to add ability to scan currently connected access
@@ -880,8 +888,7 @@ sub _getEssids
 
 sub _generateDefaultConfig
 {
-   my ($I) = @_;
-   my $configDir = $I->{"config"}{"configDir"};
+   my ($I, $configDir) = @_;
 
    # determine the location of a few necessary utilities...
    #
@@ -901,11 +908,18 @@ sub _generateDefaultConfig
    throw Error::MissingResourceException("Error: Unable to find utility 'ifconfig'.  Unable to proceed!") unless($ifconfig && $ifconfig ne "");
    throw Error::MissingResourceException("Error: Unable to find utility 'dhcpcd'.  Unable to proceed!") unless($dhcpcd && $dhcpcd ne "");
 
+   # try and determine the interface name
+   # pipe all errors to /dev/null
+   #
+   `$iwconfig 2> /dev/null` =~ /^(\w+)\s/i;
+   my $interface = $1;
+
    # set default config values
    #
    my %config = (
       startupScript => "",
       profileDir => "$configDir/profiles",
+      interface => $interface,
       utils => {
          iwlist => $iwlist,
          iwconfig => $iwconfig,
