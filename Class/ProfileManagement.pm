@@ -66,7 +66,15 @@ sub init
    # construct tab views...
    #
    my $notebook = $I->_constructTabs();
-   $window->add($notebook);
+
+   # construct notebook padding containers
+   #
+   my $vpad = new Gtk2::VBox(FALSE, 0);
+   my $hpad = new Gtk2::HBox(FALSE, 0);
+   $vpad->pack_start($notebook, TRUE, TRUE, 5);
+   $hpad->pack_start($vpad, TRUE, TRUE, 5);
+
+   $window->add($hpad);
 
    # set a few properties on the window object...
    #
@@ -75,8 +83,16 @@ sub init
    $window->set_position('center');
    
    $I->{"window"} = $window;
+   $I->{"notebook"} = $notebook;
 
    $window->show_all();
+}
+
+sub setPage
+{
+   my ($I, $page) = @_;
+
+   $I->{"notebook"}->set_current_page($page) if($page >= 0 && $page < $I->{"notebook"}->get_n_pages());
 }
 
 ###################
@@ -102,14 +118,7 @@ sub _constructTabs
 
    $notebook->show();
 
-   # construct notebook padding containers
-   #
-   my $vpad = new Gtk2::VBox(FALSE, 0);
-   my $hpad = new Gtk2::HBox(FALSE, 0);
-   $vpad->pack_start($notebook, TRUE, TRUE, 5);
-   $hpad->pack_start($vpad, TRUE, TRUE, 5);
-
-   return $hpad;
+   return $notebook;
 }
 
 sub _createImportTab

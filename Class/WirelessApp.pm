@@ -93,11 +93,12 @@ sub getMainView
 
 sub createProfileManagementView
 {
-   my ($class) = @_;
+   my ($class, $page) = @_;
 
    my $profileManagementController = "";
    my $profileManagementView = new Class::ProfileManagement($profileManagementController);
    $profileManagementView->init();
+   $profileManagementView->setPage($page);
 
    return $profileManagementView;
 }

@@ -63,6 +63,7 @@ sub init
    # create new Gtk2 Window
    #
    my $window = new Gtk2::Window();
+   $window->signal_connect("destroy" => sub { Gtk2->main_quit; } );
 
    # begin building main application view...
    #
@@ -285,7 +286,6 @@ sub _constructView
    # declare all interactive widgets here (buttons, text fields, etc)
    # as some will be need to be used when signal handlers are created
    #
-   my ($menu_tree, $menu);
    my ($startupEntry, $startupButton);
    my ($profileEntry, $profileButton);
    my ($new, $edit, $delete, $scan);
@@ -297,14 +297,75 @@ sub _constructView
 
    # create a menu hierarchy in a tree format...
    #
-   $menu_tree = [
+#   my @menu_tree = (
+#      {
+#         path => "/_File",
+#         type => "<Branch>",
+#      },
+#         {
+#            path => "/File/_Quit",
+#            accelerator => "<ctrl>Q",
+#            callback => "",
+#         },
+#      {
+#         path => "/_Edit",
+#         type => "<Branch>",
+#      },
+#         {
+#            path => "/Edit/_New Profile",
+#            accelerator => "<ctrl>N",
+#            callback => "",
+#         },
+#         {
+#            path => "/Edit/_Edit Profile",
+#            accelerator => "<ctrl>E",
+#            callback => "",
+#         },
+#         {
+#            path => "/Edit/_Delete Profile",
+#            accelerator => "<ctrl>D",
+#            callback => "",
+#         },
+#      {
+#         path => "/_Profile Management",
+#         type => "<Branch>",
+#      },
+#         {
+#            path => "/Profile Management/_Import Profiles...",
+#            accelerator => "",
+#            callback => "",
+#         },
+#         {
+#            path => "/Profile Management/_Export Profiles...",
+#            accelerator => "",
+#            callback => "",
+#         },
+#      {
+#         path => "/_Help",
+#         type => "<LastBranch>",
+#      },
+#         {
+#            path => "/Help/About",
+#            accelerator => "<ctrl>A",
+#            callback => "",
+#         },
+#         {
+#            path => "/Help/Help",
+#            accelerator => "<ctrl>H",
+#            callback => "",
+#         },
+#   );
+
+   my $menu_tree = [
       _File => {
 		   item_type => '<Branch>',
 		   children => [
 			   _Quit => {
    				callback => sub { Gtk2->main_quit; },
-	   			callback_action => 3,
+	   			callback_action => 0,
 		   		accelerator => '<ctrl>Q',
+               item_type => '<StockItem>',
+               extra_data => 'gtk-quit',
 			   },
    		],
 	   },
@@ -312,33 +373,48 @@ sub _constructView
 	   	item_type => '<Branch>',
          children => [
             '_New Profile' => {
-               callback_action => 0,
+               callback_action => 1,
+               callback_data => "new",
                accelerator => '<ctrl>N',
+               item_type => '<StockItem>',
+               extra_data => 'gtk-new',
             },
             '_Edit Profile' => {
-               callback_action => 1,
+               callback_action => 2,
+               callback_data => "edit",
                accelerator => '<ctrl>E',
             },
             '_Delete Profile' => {
-               callback_action => 2,
+               callback => sub { $I->{"controller"}->menuHandler(@_, $list); },
+               callback_action => 3,
+               callback_data => "delete",
                accelerator => '<ctrl>D',
+               item_type => '<StockItem>',
+               extra_data => 'gtk-delete',
+            },
+            'sep1' => {
+               item_type => '<Separator>',
             },
             'Import from...' => {
-               callback_action => 3,
+               callback_action => 4,
+               callback_data => "import",
             },
             'Export to...' => {
-               callback_action => 4,
+               callback_action => 5,
+               callback_data => "export",
             },
          ],
       },
       _Help => {
-         item_type => '<Branch>',
+         item_type => '<LastBranch>',
          children => [
             _About => {
-               callback_action => 0,
+               callback_action => 6,
+               callback_data => "about",
             },
             _Help => {
-               callback_action => 1,
+               callback_action => 7,
+               callback_data => "help",
                accelerator => '<ctrl>H',
             },
          ],
@@ -347,8 +423,11 @@ sub _constructView
 
    # Create a new Gtk2::SimpleMenu object using the menu tree
    #
-   $menu = new Gtk2::SimpleMenu(menu_tree => $menu_tree);
-
+   my $menu = new Gtk2::SimpleMenu(
+      menu_tree => $menu_tree,
+      default_callback => sub { $I->{"controller"}->menuHandler(@_); },
+   );
+         
    #-#-#-#-#-#-#-#-#-#-#
    # Script Box        #
    #-#-#-#-#-#-#-#-#-#-#
