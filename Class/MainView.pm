@@ -22,7 +22,6 @@ package Class::MainView;
 
 use strict; use warnings;
 
-use Gtk2 '-init';
 use Gtk2::SimpleList;
 use Gtk2::SimpleMenu;
 use Error qw(:try);
@@ -48,20 +47,11 @@ use constant FALSE => 0;
 
 sub new
 {
-   #my ($class, $model) = @_;
-   my ($class) = @_;
+   my ($class, $controller) = @_;
 
    # Initialize parent class
    #
-   my $this = $class->SUPER::new();
-
-   # declare all variables
-   #
-   $this->{"window"} = "";
-   $this->{"profileList"} = "";
-   $this->{"startupScript"} = "";
-   $this->{"profileDir"} = "";
-   $this->{"profileList"} = "";
+   my $this = $class->SUPER::new($controller);
 
    return $this;
 }
@@ -78,28 +68,18 @@ sub init
    #
    my $mainBox = new Gtk2::VBox(FALSE, 0);
    
-   # generate menu widget
+   # generate all widgets
    #
-   my $menu = $I->_constructMenu();
+   my ($menu, $shell, $command, $profile) = $I->_constructView();
+
+   # add all widgets to main box...
+   #
    $mainBox->pack_start($menu->{widget}, FALSE, FALSE, 0);
-   
-   # generate shell script box
-   #
-   my $shell = $I->_constructShellScriptBox();
    $mainBox->pack_start($shell, FALSE, FALSE, 10);
-
-   # generate command box
-   #
-   my $command = $I->_constructCommandBox();
    $mainBox->pack_start($command, FALSE, FALSE, 0);
-
-   # generate profile box
-   #
-   my $profile = $I->_constructProfileBox();
    $mainBox->pack_start($profile, TRUE, TRUE, 5);
 
-   # add main box to window and add accelerator
-   # group to window
+   # ...and add main box to window
    #
    $window->add($mainBox);
    $window->add_accel_group($menu->{accel_group});
@@ -107,7 +87,6 @@ sub init
    # set a few properties on the window object...
    #
    $window->set_position('center');
-   #$window->set_resizable(FALSE);
    
    # save reference to window object
    #
@@ -141,6 +120,46 @@ sub update
    my ($I) = @_;
 
    print "Updating MainView data...\n";
+}
+
+sub confirmAction
+{
+   my ($I, $title, $question) = @_;
+
+   my $dialog = new_with_buttons Gtk2::Dialog(
+      $title, 
+      $I->{"window"},
+      'destroy-with-parent',
+      'gtk-ok' => 'ok', 
+      'gtk-cancel' => 'cancel',
+   );
+   
+   my $label = new Gtk2::Label($question);
+   my $vbox = new Gtk2::VBox(TRUE, 0);
+   my $hbox = new Gtk2::HBox(TRUE, 0);
+   $vbox->pack_start($label, TRUE, TRUE, 20);
+   $hbox->pack_start($vbox, TRUE, TRUE, 20);
+   
+   $hbox->show();
+   $vbox->show();
+   $label->show();
+   
+   $dialog->vbox->add($hbox);
+
+   # Ensure that the dialog box is destroyed when the user responds.
+   #
+   $dialog->signal_connect (response => sub {});
+   
+   if('ok' eq $dialog->run())
+   {
+      $dialog->destroy();
+      return 1;
+   }
+   else
+   {
+      $dialog->destroy();
+      return 0;
+   }
 }
 
 ##################
@@ -205,13 +224,27 @@ sub getProfileDir
 # private methods #
 ###################
 
-sub _constructMenu
+sub _constructView
 {
    my ($I) = @_;
+   my $model = Class::WirelessApp->getModel();
+
+   # declare all variables here as some will be need to be used
+   # when signal handlers are created
+   #
+   my ($menu_tree, $menu);
+   my ($startupFrame, $startupBox, $startupEntry, $startupButton);
+   my ($profiledirFrame, $profiledirBox, $profiledirEntry, $profiledirButton);
+   my ($new, $edit, $delete, $scan);
+   my ($list, $buttonBox, $up, $down);
+
+   #-#-#-#-#-#-#-#-#-#-#
+   # Main Menu         #
+   #-#-#-#-#-#-#-#-#-#-#
 
    # create a menu hierarchy in a tree format...
    #
-   my $menu_tree = [
+   $menu_tree = [
       _File => {
 		   item_type => '<Branch>',
 		   children => [
@@ -261,117 +294,95 @@ sub _constructMenu
 
    # Create a new Gtk2::SimpleMenu object using the menu tree
    #
-   my $menu = new Gtk2::SimpleMenu(menu_tree => $menu_tree);
+   $menu = new Gtk2::SimpleMenu(menu_tree => $menu_tree);
 
-   return $menu;
-}
+   #-#-#-#-#-#-#-#-#-#-#
+   # Script Box        #
+   #-#-#-#-#-#-#-#-#-#-#
 
-sub _constructShellScriptBox
-{
-   my ($I) = @_;
-   #my $model = $I->{"model"};
-   my $model = Class::WirelessApp->getModel();
-
-   my $container = new Gtk2::VBox(TRUE, 5);
-
+   my $configBox = new Gtk2::VBox(TRUE, 5);
+   
    # Create Frame to hold startup script file chooser
    # Create HBox to hold entry and button
    #
-   my $scriptFrame = new Gtk2::Frame(" Startup Script ");
-   my $scriptBox = new Gtk2::HBox(FALSE, 2);
+   $startupFrame = new Gtk2::Frame(" Startup Script ");
+   $startupBox = new Gtk2::HBox(FALSE, 2);
 
-   my $scriptEntry = new Gtk2::Entry();
-   $scriptEntry->set_editable(FALSE);
-   my $scriptButton = new_with_label Gtk2::Button("Browse");
+   $startupEntry = new Gtk2::Entry();
+   $startupEntry->set_editable(FALSE);
+   $startupButton = new_with_label Gtk2::Button("Browse");
 
    # add entry and button to box, then add box to frame...
    #
-   $scriptBox->pack_start($scriptEntry, TRUE, TRUE, 0);
-   $scriptBox->pack_start($scriptButton, FALSE, FALSE, 0);
-   $scriptFrame->add($scriptBox);
+   $startupBox->pack_start($startupEntry, TRUE, TRUE, 0);
+   $startupBox->pack_start($startupButton, FALSE, FALSE, 0);
+   $startupFrame->add($startupBox);
    
    # Create Frame to hold profile dir file chooser
    # Create HBox to hold entry and button
    #
-   my $profileFrame = new Gtk2::Frame(" Profile Directory ");
-   my $profileBox = new Gtk2::HBox(FALSE, 2);
+   $profiledirFrame = new Gtk2::Frame(" Profile Directory ");
+   $profiledirBox = new Gtk2::HBox(FALSE, 2);
    
-   my $profileEntry = new Gtk2::Entry();
-   $profileEntry->set_editable(FALSE);
-   my $profileButton = Gtk2::Button->new_with_label("Browse");
+   $profiledirEntry = new Gtk2::Entry();
+   $profiledirEntry->set_editable(FALSE);
+   $profiledirButton = Gtk2::Button->new_with_label("Browse");
 
    # add entry and button to box, then add box to frame...
    #
-   $profileBox->pack_start($profileEntry, TRUE, TRUE, 0);
-   $profileBox->pack_start($profileButton, FALSE, FALSE, 0);
-   $profileFrame->add($profileBox);
+   $profiledirBox->pack_start($profiledirEntry, TRUE, TRUE, 0);
+   $profiledirBox->pack_start($profiledirButton, FALSE, FALSE, 0);
+   $profiledirFrame->add($profiledirBox);
 
    # add script and profile frame to container
    #
-   $container->pack_start($scriptFrame, TRUE, TRUE, 0);
-   $container->pack_start($profileFrame, TRUE, TRUE, 0);
+   $configBox->pack_start($startupFrame, TRUE, TRUE, 0);
+   $configBox->pack_start($profiledirFrame, TRUE, TRUE, 0);
 
    # set action listeners...
    #
-   $scriptButton->signal_connect("clicked", \&_buttonListener, $scriptEntry);
-   $profileButton->signal_connect("clicked", \&_buttonListener, $profileEntry);
+   $startupButton->signal_connect("clicked", \&_buttonListener, $startupEntry);
+   $profiledirButton->signal_connect("clicked", \&_buttonListener, $profiledirEntry);
 
    # set startup script and profile directory fields...
    #
-   $scriptEntry->set_text( $model->getStartupScript() );
-   $profileEntry->set_text( $model->getProfileDir() );
+   $startupEntry->set_text( $model->getStartupScript() );
+   $profiledirEntry->set_text( $model->getProfileDir() );
 
-   # store reference to scriptEntry and profileEntry
-   #
-   $I->{"startupScript"} = $scriptEntry;
-   $I->{"profileDir"} = $profileEntry;
+   #-#-#-#-#-#-#-#-#-#-#
+   # Command Box       #
+   #-#-#-#-#-#-#-#-#-#-#
 
-   # return completed script box to caller
-   #
-   return $container;
-}
-
-sub _constructCommandBox
-{
-   my ($I) = @_;
-
-   # create command box
-   #
    my $commandBox = new Gtk2::HBox(TRUE, 5);
-
+   
    # create command buttons
    #
-   my $new = new_with_label Gtk2::Button("New");
-   my $edit = new_with_label Gtk2::Button("Edit");
-   my $delete = new_with_label Gtk2::Button("Delete");
-   my $scan = new_with_label Gtk2::Button("Scan");
+   $new = new_with_label Gtk2::Button("New Profile");
+   $edit = new_with_label Gtk2::Button("Edit Profile");
+   $delete = new_with_label Gtk2::Button("Delete Profile(s)");
+   $scan = new_with_label Gtk2::Button("Scan");
 
    # set action listeners...
    #
-   $new->signal_connect("clicked", \&_buttonListener);
-   $edit->signal_connect("clicked", \&_buttonListener);
-   $delete->signal_connect("clicked", \&_buttonListener, $I);
-   $scan->signal_connect("clicked", \&_buttonListener);
+   $new->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(shift @_); });
+   $edit->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(shift @_, $list); });
+   $delete->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(shift @_, $list); });
+   $scan->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(shift @_, $list); });
 
    $commandBox->pack_start($new, TRUE, TRUE, 0);
    $commandBox->pack_start($edit, TRUE, TRUE, 0);
    $commandBox->pack_start($delete, TRUE, TRUE, 0);
    $commandBox->pack_start($scan, TRUE, TRUE, 0);
 
-   return $commandBox;
-}
+   #-#-#-#-#-#-#-#-#-#-#
+   # Profile Box       #
+   #-#-#-#-#-#-#-#-#-#-#
 
-sub _constructProfileBox
-{
-   my ($I) = @_;
-
-   # create profile box
-   #
    my $profileBox = new Gtk2::HBox(FALSE, 5);
 
    # create a new Gtk2::SimpleList object
    #
-   my $list = new Gtk2::SimpleList(
+   $list = new Gtk2::SimpleList(
       '     ' => 'bool',
       'Profile' => 'text',
       'Access Point' => 'text',
@@ -379,7 +390,9 @@ sub _constructProfileBox
 
    # set any properties on new list
    #
-   $list->get_selection()->set_mode('multiple');
+   #$list->get_selection()->set_mode('multiple');
+   $list->get_selection()->set_mode('single');
+   $list->set_reorderable(TRUE);
 
    # get all profiles from the model and add to profile list
    #
@@ -391,9 +404,9 @@ sub _constructProfileBox
 
    # create new up/down buttons to move profiles in list
    #
-   my $buttonBox = new Gtk2::VBox(FALSE, 5);
-   my $up = new_with_label Gtk2::Button("up");
-   my $down = new_with_label Gtk2::Button("down");
+   $buttonBox = new Gtk2::VBox(FALSE, 5);
+   $up = new_with_label Gtk2::Button("up");
+   $down = new_with_label Gtk2::Button("down");
 
    $buttonBox->pack_start($up, FALSE, FALSE, 0);
    $buttonBox->pack_end($down, FALSE, FALSE, 0);
@@ -403,16 +416,14 @@ sub _constructProfileBox
    $profileBox->pack_start($list, TRUE, TRUE, 0);
    $profileBox->pack_start($buttonBox, FALSE, FALSE, 0);
    
-   # store reference to profile list
-   #
-   $I->{"profileList"} = $list;
-
    # set action listeners...
    #
-   $up->signal_connect("clicked", \&_buttonListener);
-   $down->signal_connect("clicked", \&_buttonListener);
+   $up->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(shift @_, $list); });
+   $down->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(shift @_, $list); });
 
-   return $profileBox;
+   # Return newly created widgets to caller
+   #
+   return ($menu, $configBox, $commandBox, $profileBox);
 }
 
 sub _openFileSelector
@@ -439,66 +450,16 @@ sub _openFileSelector
 
 sub _buttonListener
 {
-   my ($button, @args) = @_;
-   my $model = Class::WirelessApp->getModel();
+   my ($button, @Args) = @_;
+   my $I = pop @Args;
+   my $controller = $I->{"controller"};
 
-   if($button->get_label() eq "Browse")
-   {
-      print "browse button click caught!\n";
-      $args[0]->set_text("Change text!");
-   }
-   elsif($button->get_label() eq "New")
-   {
-      print "new button click caught!\n";
-   }
-   elsif($button->get_label() eq "Edit")
-   {
-      print "edit button click caught!\n";
-   }
-   elsif($button->get_label() eq "Delete")
-   {
-      my ($I) = @args;
-      my $list = $I->{"profileList"};
+print ref $I;
+exit;
 
-      # get list of selected profiles...
-      #
-      my @Rows = $list->get_selected_indices();
-
-      # exit handler if user didn't have any profiles 
-      # selected...
-      #
-      return if(scalar @Rows == 0);
-
-      # get data for selected profiles and remove from 
-      # model and profile list
-      # Note: have to reverse selected rows list so that profiles
-      #       are removed in reverse order otherwise row numbers
-      #       change as profiles are removed from head :)
-      #
-      @Rows = reverse @Rows;
-      for(my $i = 0; $i < scalar @Rows; $i++)
-      {
-         my @Ap = @{ $list->{data}[$Rows[$i]] }; # get profile data...
-         $model->destroyProfile($Ap[1]);   # $ap[1] contains profile name
-         
-         # remove profile from list
-         #
-         splice @{$list->{data}}, $Rows[$i], 1;
-      }
-   }
-   elsif($button->get_label() eq "Scan")
-   {
-      print "scan button click caught!\n";
-      $model->scan();
-   }
-   elsif($button->get_label() eq "up")
-   {
-      print "up button click caught!\n";
-   }
-   elsif($button->get_label() eq "down")
-   {
-      print "down button click caught!\n";
-   }
+   # call MainViewController button handler
+   #
+   $controller->buttonHandler(@Args);
 }
 
 1;#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#

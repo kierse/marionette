@@ -30,18 +30,17 @@ use strict; use warnings;
 
 sub new
 {
-   #my ($class, $model) = @_;
-   my ($class) = @_;
+   my ($class, $controller) = @_;
    my $this = {};
 
    # bless this object into given class
    #
    bless $this, $class;
 
-   # declare all class variables and set model
-   # variable using given model reference
+   # declare all class variables and set controller 
+   # variable using given reference
    #
-   #$this->{"model"} = $model;
+   $this->{"controller"} = $controller;
 
    return $this;
 }
@@ -54,6 +53,13 @@ sub update
    my ($I) = @_;
 
    print "Updating View data...\n";
+}
+
+sub getController
+{
+   my ($I) = @_;
+
+   return $I->{"controller"};
 }
 
 1;#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
