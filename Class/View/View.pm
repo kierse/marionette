@@ -45,6 +45,20 @@ sub new
    return $this;
 }
 
+sub hide
+{
+   my ($I) = @_;
+
+   $I->{"window"}->hide_all();
+}
+
+sub show
+{
+   my ($I) = @_;
+
+   $I->{"window"}->show_all();
+}
+
 # this method MUST be updated in each child class
 # to reflect that classes usage of the model data
 #

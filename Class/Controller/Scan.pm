@@ -1,6 +1,6 @@
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 #
-#   Class:          Class::Controller::Scan
+#   Name:           Class::Controller::Scan
 #
 #   Author:         Kier Elliott
 #

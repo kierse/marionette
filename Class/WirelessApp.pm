@@ -29,8 +29,10 @@ use Class::Model;
 use Class::View::Main;
 use Class::View::ProfileManagement;
 use Class::View::Scan;
+use Class::View::Tray;
 use Class::Controller::Main;
 use Class::Controller::Scan;
+use Class::Controller::Tray;
 use Utility::Connection;
 
 # Global variables
@@ -62,11 +64,16 @@ sub run
    $mainView = new Class::View::Main($mainViewController);
    $mainView->init();
 
-   my $tray = new Gtk2::TrayIcon("test");
-   my $pix = new_from_file Gtk2::Image('/home/kierse/working/wireless_app/trunk/images/toolbar.gif');
-   my $label = new Gtk2::Label(":)");
+   my $tray = new Gtk2::TrayIcon("tray");
+   #my $pix = new_from_file Gtk2::Image('/home/kierse/working/wireless_app/trunk/images/toolbar.gif');
+   #my $label = new Gtk2::Label(":)");
    #$tray->add($label);
-   $tray->add($pix);
+   #$tray->add($pix);
+
+   my $trayViewController = new Class::Controller::Tray();
+   my $trayView = new Class::View::Tray($trayViewController);
+   $tray->add($trayView->init());
+   
    $tray->show_all();
 
    # register new Main view with model...

@@ -1,6 +1,6 @@
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 #
-#   Class:          Class::View::Main
+#   Name:          Class::View::Main
 #
 #   Author:         Kier Elliott
 #
@@ -540,16 +540,12 @@ sub _populateList
    my @Profiles = ();
    foreach my $profile ($model->getProfiles())
    {
-      my $pix;
+      my $pix = undef;
       if(grep{ $profile->get("essid") eq $_; } $model->getAvailableNetworks())
       {
          $pix = $model->isConnected() && $model->getConnectedAP()->get("essid") eq $profile->get("essid")
             ? new_from_file Gtk2::Gdk::Pixbuf("images/connected.gif")
             : new_from_file Gtk2::Gdk::Pixbuf("images/available.gif");
-      }
-      else
-      {
-         $pix = new_from_file Gtk2::Gdk::Pixbuf("images/unavailable.gif");
       }
       
       push @Profiles, [$pix, $profile->get("name"), $profile->get("essid")];
