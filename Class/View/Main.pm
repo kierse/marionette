@@ -106,14 +106,16 @@ sub update
 
    # update connection status information
    #
-   my $accessPoint = $model->getConnectedAP();
-   $I->{"status"}->set_label(
-      $model->isConnected()
-         ? "Connected"
-         : "Disconnected"
-   );
-   $I->{"essid"}->set_label($accessPoint->get("essid"));
-   $I->{"encryption"}->set_label($accessPoint->get("encryption"));
+   if( my $accessPoint = $model->getConnectedAP() )
+   {
+      $I->{"status"}->set_label(
+         $model->isConnected()
+            ? "Connected"
+            : "Disconnected"
+      );
+      $I->{"essid"}->set_label($accessPoint->get("essid"));
+      $I->{"encryption"}->set_label($accessPoint->get("encryption"));
+   }
 
    # clear current list and repopulate with
    # new profile data from model...
@@ -475,37 +477,72 @@ sub _constructStatus
 {
    my ($I, $accessPoint) = @_;
    my $model = Class::WirelessApp->getModel();
+   my %appConfigs = Class::WirelessApp->getConfig();
    my $status = new Gtk2::Label("Disconnected");
    my $ap = new Gtk2::Label();
    my $encryption = new Gtk2::Label();
 
-   my $strength = new_from_file Gtk2::Image('images/largeStrength.png');
    if($model->isConnected())
    {
       $status->set_label("Connected");
       $ap->set_label($accessPoint->get("essid"));
       $encryption->set_label($accessPoint->get("encryption"));
    }
+
+   # create strength widgets...
+   #
+   my $gVBox = new Gtk2::VBox(FALSE, 0);
+   my $gHBox = new Gtk2::VBox(FALSE, 0);
+   my $strength = new_from_file Gtk2::Image($appConfigs{"images"}{"strength"}{"large"}[0]);
+   $gHBox->pack_start($strength, FALSE, FALSE, 0);
+   $gVBox->pack_start($gHBox, FALSE, FALSE, 2);
    
-   # create table and add all created widgets...
+   # create Status widgets...
    #
-   my $layout = new Gtk2::Table(3, 3, FALSE);
-   $layout->attach($strength, 0, 1, 0, 3, "fill", "fill", 0, 0);
+   my $statusLabelBox = new Gtk2::HBox(FALSE, 0);
+   my $statusBox = new Gtk2::HBox(FALSE, 0);
+   my $sVBox = new Gtk2::VBox(FALSE, 0);
+   my $sHBox = new Gtk2::HBox(FALSE, 0);
+   $statusLabelBox->pack_end(new Gtk2::Label("Status:"), FALSE, FALSE, 0);
+   $statusBox->pack_end($status, FALSE, FALSE, 0);
+   $sHBox->pack_start($statusLabelBox, FALSE, FALSE, 5);
+   $sHBox->pack_start($statusBox, FALSE, FALSE, 5);
+   $sVBox->pack_start($sHBox, FALSE, FALSE, 5);
+   
+   # create AccessPoint widgets...
+   #
+   my $apLabelBox = new Gtk2::HBox(FALSE, 0);
+   my $apBox = new Gtk2::HBox(FALSE, 0);
+   my $aVBox = new Gtk2::VBox(FALSE, 0);
+   my $aHBox = new Gtk2::HBox(FALSE, 0);
+   $apLabelBox->pack_end(new Gtk2::Label("Access Point:"), FALSE, FALSE, 0);
+   $apBox->pack_end($ap, FALSE, FALSE, 0);
+   $aHBox->pack_start($apLabelBox, FALSE, FALSE, 5);
+   $aHBox->pack_start($apBox, FALSE, FALSE, 5);
+   $aVBox->pack_start($aHBox, FALSE, FALSE, 5);
 
-   # add status widgets...
+   # create Encryption widgets...
    #
-   $layout->attach(new Gtk2::Label("Status:"), 1, 2, 0, 1, "fill", "fill", 0, 0);
-   $layout->attach($status, 2, 3, 0, 1, "fill", "fill", 0, 0);
+   my $encryptionLabelBox = new Gtk2::HBox(FALSE, 0);
+   my $encryptionBox = new Gtk2::HBox(FALSE, 0);
+   my $eVBox = new Gtk2::VBox(FALSE, 0);
+   my $eHBox = new Gtk2::HBox(FALSE, 0);
+   $encryptionLabelBox->pack_end(new Gtk2::Label("Encryption:"), FALSE, FALSE, 0);
+   $encryptionBox->pack_end($encryption, FALSE, FALSE, 0);
+   $eHBox->pack_start($encryptionLabelBox, FALSE, FALSE, 5);
+   $eHBox->pack_start($encryptionBox, FALSE, FALSE, 5);
+   $eVBox->pack_start($eHBox, FALSE, FALSE, 5);
 
-   # add access point name widgets...
-   #
-   $layout->attach(new Gtk2::Label("Access Point:"), 1, 2, 1, 2, "fill", "fill", 0, 0);
-   $layout->attach($ap, 2, 3, 1, 3, "fill", "fill", 0, 0);
+   my $hBox = new Gtk2::HBox(FALSE, 0);
+   my $vBox = new Gtk2::VBox(FALSE, 0);
+   $vBox->pack_start($sVBox, FALSE, FALSE, 0);
+   $vBox->pack_start($aVBox, FALSE, FALSE, 0);
+   $vBox->pack_start($eVBox, FALSE, FALSE, 0);
+   $hBox->pack_start($vBox, FALSE, FALSE, 0);
 
-   # add encryption widgets...
-   #
-   $layout->attach(new Gtk2::Label("Encryption:"), 1, 2, 2, 3, "fill", "fill", 0, 0);
-   $layout->attach($encryption, 2, 3, 2, 3, "fill", "fill", 0, 0);
+   my $layout = new Gtk2::HBox(FALSE, 0);
+   $layout->pack_start($gVBox, FALSE, FALSE, 0);
+   $layout->pack_start($hBox, FALSE, FALSE, 0);
    
    # create new frame...
    #
@@ -544,6 +581,7 @@ sub _populateList
 {
    my ($I) = @_;
    my $model = Class::WirelessApp->getModel();
+   my %appConfigs = Class::WirelessApp->getConfig();
    
    my @Profiles = ();
    foreach my $profile ($model->getProfiles())
@@ -552,8 +590,8 @@ sub _populateList
       if(grep{ $profile->get("essid") eq $_; } $model->getAvailableNetworks())
       {
          $pix = $model->isConnected() && $model->getConnectedAP()->get("essid") eq $profile->get("essid")
-            ? new_from_file Gtk2::Gdk::Pixbuf("images/connected.gif")
-            : new_from_file Gtk2::Gdk::Pixbuf("images/available.gif");
+            ? new_from_file Gtk2::Gdk::Pixbuf($appConfigs{"images"}{"connected"})
+            : new_from_file Gtk2::Gdk::Pixbuf($appConfigs{"images"}{"available"});
       }
       
       push @Profiles, [$pix, $profile->get("name"), $profile->get("essid")];

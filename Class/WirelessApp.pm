@@ -40,6 +40,7 @@ use Utility::Connection;
 my $model;
 my $mainView;
 my $connection;
+my %config;
 
 sub new
 {
@@ -47,6 +48,36 @@ sub new
    my $this = {};
    
    bless $this, $class;
+
+   # set config variables...
+   #
+   %config = (
+      "configDir" => $ENV{"HOME"} . "/.wireless_app",
+      "images" => 
+      {
+         "connected" => "images/connected.gif",
+         "available" => "images/available.gif",
+         "strength"  => 
+         {
+            "small" => 
+            [
+               "images/smallStrength0.png",
+               "images/smallStrength1.png",
+               "images/smallStrength2.png",
+               "images/smallStrength3.png",
+               "images/smallStrength4.png",
+            ],
+            "large" => 
+            [
+               "images/largeStrength0.png",
+               "images/largeStrength1.png",
+               "images/largeStrength2.png",
+               "images/largeStrength3.png",
+               "images/largeStrength4.png",
+            ],
+         }
+      }
+   );
 
    return $this;
 }
@@ -112,6 +143,13 @@ sub getConnection
    }
 
    return $connection;
+}
+
+sub getConfig
+{
+   my ($class) = @_;
+
+   return %config;
 }
 
 sub createProfileManagementView

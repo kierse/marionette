@@ -49,10 +49,11 @@ sub new
 sub init
 {
    my ($I) = @_;
+   my %appConfigs = Class::WirelessApp->getConfig();
 
    my $eventBox = new Gtk2::EventBox();
-   my $pix = new_from_file Gtk2::Image('/home/kierse/working/wireless_app/trunk/images/toolbar.gif');
-   $eventBox->add($pix);
+   my $image = new_from_file Gtk2::Image($appConfigs{"images"}{"strength"}{"small"}[1]);
+   $eventBox->add($image);
 
    # set event listeners on event box...
    #
@@ -61,7 +62,7 @@ sub init
    # store event box and image for later use...
    #
    $I->{"eventBox"} = $eventBox;
-   $I->{"image"} = $pix;
+   $I->{"image"} = $image;
 
    return $eventBox;
 }

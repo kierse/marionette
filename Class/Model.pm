@@ -34,7 +34,6 @@ use Error::Exception;
 
 # global variables
 #
-my $configDir = $ENV{"HOME"} . "/.wireless_app";
 
 ##################
 # public methods #
@@ -67,17 +66,16 @@ sub new
 sub init
 {
    my ($I) = @_;
+   my %appConfigs = Class::WirelessApp->getConfig();
 
    # determine if the config directory exists or not
    #
+   my $configDir = $appConfigs{"configDir"};
    if(-d $configDir && -e "$configDir/config.xml")
    {
       # open configuration file and get config values
       #
-      #my $dump = new XML::Dumper();
-      #$I->{"config"} = $dump->xml2perl($configDir . "/config.xml");
       my $parser = new Data::DumpXML::Parser();
-      #$I->{"config"} = $parser->parsefile($configDir . "/config.xml");
 
       # store hash created from config data in
       # config variable
@@ -618,6 +616,8 @@ sub exportProfiles
 sub clean
 {
    my ($I) = @_;
+   my %appConfig = Class::WirelessApp->getConfig();
+   my $configDir = $appConfig{"configDir"};
 
    # clean up model...
    #
@@ -786,6 +786,8 @@ sub _getEssids
 sub _generateDefaultConfig
 {
    my ($I) = @_;
+   my %appConfig = Class::WirelessApp->getConfig();
+   my $configDir = $appConfig{"configDir"};
 
    # determine the location of a few necessary utilities...
    #
