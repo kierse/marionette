@@ -1,6 +1,6 @@
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 #
-#   Class:          ProfileManagement.pm
+#   Class:          ProfileManagementView.pm
 #
 #   Author:         Kier Elliott
 #
@@ -18,7 +18,7 @@
 #
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-package Class::ProfileManagement;
+package Class::ProfileManagementView;
 
 use strict; use warnings;
 
