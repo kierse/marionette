@@ -27,10 +27,10 @@ use strict; use warnings;
 use XML::Dumper;
 use Data::DumpXML;
 use Data::DumpXML::Parser;
-use Error qw(:try);
 
 use Class::AccessPoint;
 use Class::AccessPointProfile;
+use Error::Exception;
 
 # global variables
 #
@@ -106,11 +106,11 @@ sub init
    {
       # directory doesn't exist
       #
-      throw Error::Simple("Given profile directory does not exist") unless(-d $profileDir);
+      throw Error::FileSystemException("Given profile directory does not exist") unless(-d $profileDir);
 
       # directory has wrong read/write permissions
       #
-      throw Error::Simple("Given profile directory does not have adequate read/write permissions") unless(-r $profileDir && -w $profileDir);
+      throw Error::FileSystemException("Given profile directory does not have adequate read/write permissions") unless(-r $profileDir && -w $profileDir);
    }
 
    # perform a scan and look for available wireless access points...
@@ -136,13 +136,13 @@ sub scan
    
    # only proceed if iwlist is present on system...
    #
-   throw Error::Simple("Unable to locate linux wireless statistics application iwlist at '" . $I->{"config"}{"utils"}{"iwlist"} . "', unable to proceed") unless(-e $I->{"config"}{"utils"}{"iwlist"});
+   throw Error::MissingResourceException("Unable to locate linux wireless statistics application iwlist at '" . $I->{"config"}{"utils"}{"iwlist"} . "', unable to proceed") unless(-e $I->{"config"}{"utils"}{"iwlist"});
 
    # scan for available wireless access points using iwlist
    # and capture results
    #
    my $cmd = $I->{"config"}{"utils"}{"iwlist"} . " " . $I->{'interface'} . " scan";
-   my $result = `$cmd` or throw Error::Simple("Scanning for wireless access points failed");
+   my $result = `$cmd` or throw Error::ExecutionException("Scanning for wireless access points failed");
 
    $result =~ s/(^.+\n)//;
    $result =~ s/(^\s+)//;
@@ -407,7 +407,7 @@ sub setConnectedAP()
    }
    else
    {
-      throw Error::Simple("Cannot be connected to specified access point, does not exists or is not within range");
+      throw Error::IllegalParameterException("Cannot be connected to specified access point, does not exists or is not within range");
    }
 
    # set connected flag to true
@@ -512,11 +512,11 @@ sub importProfiles
 
    # given path doesn't exist or isn't a directory, return
    #
-   throw Error::Simple("Given path does not exists or isn't a directory") unless(-d $path);
+   throw Error::FileSystemException("Given path does not exists or isn't a directory") unless(-d $path);
    
    # open directory and get list of file names
    #
-   opendir(PROFILES, $path) or throw Error::Simple("Unable to open '$path' for import");
+   opendir(PROFILES, $path) or throw Error::FileSystemException("Unable to open '$path' for import");
    my @Files = readdir PROFILES;
    closedir(PROFILES);
 
@@ -533,7 +533,7 @@ sub importProfiles
        # pass file to parser and capture returned object data
        #
        my $object = $parser->parsefile($path . "/" . $file) or
-         throw Error::Simple("Failed parsing profile located at: '$path/$file'");
+         throw Error::ParsingException("Failed parsing profile located at: '$path/$file'");
            
        my $profile = $$object[1];
        bless $profile, "Class::AccessPointProfile";
@@ -584,7 +584,7 @@ sub exportProfiles
 
    # given path doesn't exists or isn't a directory, return
    #
-   throw Error::Simple("Given path does not exists or isn't a directory") unless(-d $path);
+   throw Error::FileSystemException("Given path does not exists or isn't a directory") unless(-d $path);
    
    my %Profiles = %{$I->{"profiles"}};
    foreach my $name (@Names)
@@ -597,7 +597,7 @@ sub exportProfiles
          # write xml data out to disk at given path
          #
          open(PROFILES, ">", $path . "/" . $profile->get("name") . ".xml") or 
-            throw Error::Simple("Unable to write profiles to '$path' for export");
+            throw Error::FileSystemException("Unable to write profiles to '$path' for export");
          print PROFILES $xml;
          close(PROFILES);
 
@@ -608,7 +608,7 @@ sub exportProfiles
       #
       else
       {
-         throw Error::Simple("Profile '$name' does not exist");
+         throw Error::IllegalParameterException("Profile '$name' does not exist");
       }
    }
 
@@ -648,7 +648,7 @@ sub clean
 
       # print out generated xml to config file...
       #
-      open(CONFIG, ">", $configDir . "/config.xml") or throw ErrorSimple("Unable to write config file to disk");
+      open(CONFIG, ">", $configDir . "/config.xml") or throw Error::IOException("Unable to write config file to disk");
       print CONFIG $xml;
       close(CONFIG);
    }
@@ -675,7 +675,7 @@ sub _loadProfiles
    # get the names of all files in the profileDir
    #
    opendir(PROFILES, $I->{"config"}{"profileDir"}) or 
-      throw Error::Simple("Unable to open '" . $I->{"config"}{"profileDir"} . "' for import");
+      throw Error::FileSystemException("Unable to open '" . $I->{"config"}{"profileDir"} . "' for import");
    my @Files = readdir PROFILES;
    closedir(PROFILES);
 
@@ -692,7 +692,7 @@ sub _loadProfiles
    {
       next unless $file =~ /\.xml$/i;
       my $object = $parser->parsefile($I->{"config"}{"profileDir"} . "/" . $file) or
-         throw Error::Simple("Failed parsing profile located at: '$path/$file'");
+         throw Error::ParsingException("Failed parsing profile located at: '$path/$file'");
 
       # NOTE: Need to put check in to make sure that 2 profiles with
       # the same name aren't loaded or at least don't overwrite eachother
@@ -718,7 +718,7 @@ sub _writeProfiles
    # get list of profiles in profileDir
    #
    opendir(PROFILES, $I->{"config"}{"profileDir"}) or 
-      throw Error::Simple("Unable to open '" . $I->{"config"}{"profileDir"} . "' for import");
+      throw Error::FileSystemException("Unable to open '" . $I->{"config"}{"profileDir"} . "' for import");
    my %Files = map { $_ => $_ } readdir PROFILES;
    closedir(PROFILES);
 
@@ -749,7 +749,7 @@ sub _writeProfiles
       
       # write out xml to disk...
       #
-      open(PROFILE, ">", $file) or throw Error::Simple("Unable to write profiles to '" . $I->{"config"}{"profileDir"} .  "' for export");
+      open(PROFILE, ">", $file) or throw Error::IOException("Unable to write profiles to '" . $I->{"config"}{"profileDir"} .  "' for export");
       print PROFILE $xml;
       close(PROFILE);
    }
@@ -800,10 +800,10 @@ sub _generateDefaultConfig
    
    # verify that all the utilities are present on the system...
    #
-   throw Error::Simple("Error: Unable to find utility 'iwlist'.  Unable to proceed!") unless($iwlist && $iwlist ne "");
-   throw Error::Simple("Error: Unable to find utility 'iwconfig'.  Unable to proceed!") unless($iwconfig && $iwconfig ne "");
-   throw Error::Simple("Error: Unable to find utility 'ifconfig'.  Unable to proceed!") unless($ifconfig && $ifconfig ne "");
-   throw Error::Simple("Error: Unable to find utility 'dhcpcd'.  Unable to proceed!") unless($dhcpcd && $dhcpcd ne "");
+   throw Error::MissingResourceException("Error: Unable to find utility 'iwlist'.  Unable to proceed!") unless($iwlist && $iwlist ne "");
+   throw Error::MissingResourceException("Error: Unable to find utility 'iwconfig'.  Unable to proceed!") unless($iwconfig && $iwconfig ne "");
+   throw Error::MissingResourceException("Error: Unable to find utility 'ifconfig'.  Unable to proceed!") unless($ifconfig && $ifconfig ne "");
+   throw Error::MissingResourceException("Error: Unable to find utility 'dhcpcd'.  Unable to proceed!") unless($dhcpcd && $dhcpcd ne "");
 
    # set default config values
    #

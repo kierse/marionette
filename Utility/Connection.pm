@@ -1,6 +1,6 @@
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 #
-#   Class:          Class::Connection
+#   Class:          Utility::Connection
 #
 #   Author:         Kier Elliott
 #
@@ -18,7 +18,7 @@
 #
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-package Class::Connection;
+package Utility::Connection;
 
 use strict; use warnings;
 

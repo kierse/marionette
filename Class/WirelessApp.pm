@@ -26,12 +26,12 @@ use Gtk2 '-init';
 use Gtk2::TrayIcon;
 
 use Class::Model;
-use Class::Connection;
 use Class::View::Main;
 use Class::View::ProfileManagement;
 use Class::View::Scan;
 use Class::Controller::Main;
 use Class::Controller::Scan;
+use Utility::Connection;
 
 # Global variables
 #
@@ -142,7 +142,7 @@ sub createConnection
 {
    my ($class) = @_;
 
-   $connection = new Class::Connection("wlan0");
+   $connection = new Utility::Connection("wlan0");
    $connection->init();
 
    return $connection;
