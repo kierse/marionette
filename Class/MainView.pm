@@ -27,6 +27,7 @@ use Gtk2::SimpleList;
 use Gtk2::SimpleMenu;
 use Error qw(:try);
 
+use Class::WirelessApp;
 use Class::View;
 use Class::Model;
 use Class::AccessPoint;
@@ -106,11 +107,89 @@ sub init
    $window->show_all();
 }
 
+sub newProfile
+{
+
+}
+
+sub editProfile
+{
+
+}
+
+sub deleteProfile
+{
+
+}
+
+sub updateAccessPoints
+{
+
+}
+
 sub update
 {
    my ($I) = @_;
 
    print "Updating MainView data...\n";
+}
+
+##################
+# setter methods #
+##################
+
+sub setStartupScript
+{
+   my ($I, $path) = @_;
+
+   try
+   {
+      # if given script path does not exist, throw an error
+      #
+      throw Error::Simple("Given startup script '$path' does not exist!") unless(-e $path);
+   
+      $I->{"startupScript"}->set_text($path);
+   }
+   catch Error with
+   {
+
+   }
+}
+
+sub setProfileDir
+{
+   my ($I, $path) = @_;
+
+   try
+   {
+      # if given profile dir does not exist, throw an error
+      #
+      throw Error::Simple("Given profile directory '$path' does not exist!") unless(-d $path);
+   
+      $I->{"profileDir"}->set_text($path);
+   }
+   catch Error with
+   {
+
+   }
+}
+
+##################
+# setter methods #
+##################
+
+sub getStartupScript
+{
+   my ($I) = @_;
+
+   return $I->{"startupScript"}->get_text();
+}
+
+sub getProfileDir
+{
+   my ($I) = @_;
+
+   return $I->{"profileDir"}->get_text();
 }
 
 ###################
@@ -177,6 +256,7 @@ sub _constructMenu
 
    return $menu;
 }
+
 sub _constructShellScriptBox
 {
    my ($I) = @_;
@@ -221,6 +301,21 @@ sub _constructShellScriptBox
    $container->pack_start($scriptFrame, TRUE, TRUE, 0);
    $container->pack_start($profileFrame, TRUE, TRUE, 0);
 
+   # set action listeners...
+   #
+   $scriptButton->signal_connect("clicked", \&_buttonListener, $scriptEntry);
+   $profileButton->signal_connect("clicked", \&_buttonListener, $profileEntry);
+
+   # set startup script and profile directory fields...
+   #
+   $scriptEntry->set_text( $I->{"model"}->getStartupScript() );
+   $profileEntry->set_text( $I->{"model"}->getProfileDir() );
+
+   # store reference to scriptEntry and profileEntry
+   #
+   $I->{"startupScript"} = $scriptEntry;
+   $I->{"profileDir"} = $profileEntry;
+
    # return completed script box to caller
    #
    return $container;
@@ -234,12 +329,19 @@ sub _constructCommandBox
    #
    my $commandBox = new Gtk2::HBox(TRUE, 5);
 
-   # create command buttons and add to box
+   # create command buttons
    #
    my $new = new_with_label Gtk2::Button("New");
    my $edit = new_with_label Gtk2::Button("Edit");
    my $delete = new_with_label Gtk2::Button("Delete");
    my $scan = new_with_label Gtk2::Button("Scan");
+
+   # set action listeners...
+   #
+   $new->signal_connect("clicked", \&_buttonListener);
+   $edit->signal_connect("clicked", \&_buttonListener);
+   $delete->signal_connect("clicked", \&_buttonListener);
+   $scan->signal_connect("clicked", \&_buttonListener);
 
    $commandBox->pack_start($new, TRUE, TRUE, 0);
    $commandBox->pack_start($edit, TRUE, TRUE, 0);
@@ -274,8 +376,12 @@ sub _constructProfileBox
       'Access Point' => 'text',
    );
 
-   push @{$list->{data}}, [1, 'HOME adf asdf asf :', 'Olympus'];   
-   push @{$list->{data}}, [0, 'ERIN', 'JED'];   
+   #push @{$list->{data}}, [1, 'HOME adf asdf asf :', 'Olympus'];   
+   #push @{$list->{data}}, [0, 'ERIN', 'JED'];   
+   foreach my $ap ( $I->{"model"}->getProfiles() )
+   {
+      push @{$list->{data}}, [0, $ap->get("name"), $ap->get("essid")];
+   }
 
    # create new up/down buttons to move profiles in list
    #
@@ -291,6 +397,10 @@ sub _constructProfileBox
    $profileBox->pack_start($list, TRUE, TRUE, 0);
    $profileBox->pack_start($buttonBox, FALSE, FALSE, 0);
 
+   # set action listeners...
+   #
+   $up->signal_connect("clicked", \&_buttonListener);
+   $down->signal_connect("clicked", \&_buttonListener);
 
    return $profileBox;
 }
@@ -299,9 +409,57 @@ sub _openFileSelector
 {
    my ($I, $title, $type, $path) = @_;
 
-   my $scriptChooser = new Gtk2::FileSelection("Startup Script");
+   my $scriptChooser = new Gtk2::FileSelection($title);
+   $scriptChooser->show_fileop_buttons();
+
+   # if a path is given, set filechooser to given path
+   #
+   $scriptChooser->set_filename($path) if $path;
 
    # finished, display chooser!
    #
    $scriptChooser->show();
+
+   return $scriptChooser->get_filename();
 }
+
+####################
+# callback methods #
+####################
+
+sub _buttonListener
+{
+   my ($button, @args) = @_;
+
+   if($button->get_label() eq "Browse")
+   {
+      print "browse button click caught!\n";
+      $args[0]->set_text("Change text!");
+   }
+   elsif($button->get_label() eq "New")
+   {
+      print "new button click caught!\n";
+   }
+   elsif($button->get_label() eq "Edit")
+   {
+      print "edit button click caught!\n";
+   }
+   elsif($button->get_label() eq "Delete")
+   {
+      print "delete button click caught!\n";
+   }
+   elsif($button->get_label() eq "Scan")
+   {
+      print "scan button click caught!\n";
+   }
+   elsif($button->get_label() eq "up")
+   {
+      print "up button click caught!\n";
+   }
+   elsif($button->get_label() eq "down")
+   {
+      print "down button click caught!\n";
+   }
+}
+
+1;#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#

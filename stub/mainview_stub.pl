@@ -30,26 +30,28 @@ use Class::MainView;
 # create a new model object...
 #
 my $model = new Class::Model("wlan0");
+$model->init();
 
 # create a new view object...
 #
 my $view = new Class::MainView($model);
-
-# test getModel method...
-#
-my $temp = $view->getModel();
-$model == $temp
-   ? print "getModel test...OK\n"
-   : print "getModel test...FAILED\n";
-
-# test update method...
-#
-print "update test ...\n";
-$model->registerView($view);
-$model->scan();
-
-# test init method...
-#
 $view->init();
+
+## scan for available accesspoints
+##
+#$model->scan();
+#
+## test getModel method...
+##
+#my $temp = $view->getModel();
+#$model == $temp
+#   ? print "getModel test...OK\n"
+#   : print "getModel test...FAILED\n";
+#
+## test update method...
+##
+#print "update test ...\n";
+#$model->registerView($view);
+#$model->scan();
 
 Gtk2->main();

@@ -122,6 +122,8 @@ foreach my $ap ($model->getAPData())
    print $ap . "\n";
 }
 
+exit;
+
 # test importing profiles...
 #
 print "testing importing profiles...\n";

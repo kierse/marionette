@@ -99,6 +99,13 @@ sub isModified
    return $I->{"_dump"};
 }
 
+sub clean
+{
+   my ($I) = @_;
+
+   delete $I->{"_dump"};
+}
+
 # This method overloads the "" operator.  This allows a user
 # to print an AccessPoint object and get a relevant string
 # representation returned.

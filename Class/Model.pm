@@ -572,15 +572,17 @@ sub _writeProfiles
 {
    my ($I) = @_;
    
-   # create new XML::Dumper object
-   #
-   #my $dump = new XML::Dumper();
-
    foreach my $ap ($I->getProfiles())
    {
-      # set profile to unmodified
+      # this profile does not need to be dumped
+      # if it hasn't been modified
       #
-      $ap->setModified(0);
+      #next unless $ap->isModified();
+      next unless($ap && $ap->isModified());
+      
+      # tidy up profile before dumping to disk...
+      #
+      $ap->clean();
       
       my $xml = Data::DumpXML->dump_xml($ap);
       my $file = $I->{"config"}{"profileDir"} . "/" . $ap->get("name") . ".xml";
@@ -635,7 +637,6 @@ sub DESTROY
 
    # if config file has changed, dump file to disk...
    #
-   my $dump = new XML::Dumper();
    if(exists $I->{"config"}{"_dump"})
    {
       # set _dump to 0...
