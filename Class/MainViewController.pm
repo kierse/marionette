@@ -134,7 +134,8 @@ sub buttonHandler
    elsif($button->get_label() eq "Scan")
    {
       print "scan button click caught!\n";
-      $model->scan();
+
+      my $scanView = Class::WirelessApp->createScanView();
    }
    elsif($button->get_label() eq "up")
    {

@@ -28,7 +28,8 @@ use Gtk2::TrayIcon;
 use Class::Model;
 use Class::MainView;
 use Class::MainViewController;
-use Class::ProfileManagement;
+use Class::ProfileManagementView;
+use Class::ScanView;
 
 # Global variables
 #
@@ -96,11 +97,22 @@ sub createProfileManagementView
    my ($class, $page) = @_;
 
    my $profileManagementController = "";
-   my $profileManagementView = new Class::ProfileManagement($profileManagementController);
+   my $profileManagementView = new Class::ProfileManagementView($profileManagementController);
    $profileManagementView->init();
    $profileManagementView->setPage($page);
 
    return $profileManagementView;
+}
+
+sub createScanView
+{
+   my ($class) = @_;
+
+   my $scanViewController = "";
+   my $scanView = new Class::ScanView($scanViewController);
+   $scanView->init();
+
+   return $scanView;
 }
 
 1;#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
