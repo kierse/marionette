@@ -9,23 +9,45 @@
 #
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-Roadmap-to-Release
-------------------
+Roadmap to version 1.0
+----------------------
 
-0.1.0 : Current
----------------
+0.5.0 - Release Date: October 16, 2004
+--------------------------------------
 - basic functionality
 - ability to delete profiles
 - ability to select profile and connect to access point
 - ability to scan for & connect to new access points
 
+0.6.0
+-----
+- finish error handling
+- create new ErrorTicket object to alert user of error
 
-Method to rank/determine connection priority
+0.7.0
+-----
+- Method to rank/determine connection priority
 
-Views for creating/editing profiles
-Views for help and about
+0.8.0
+-----
+- Views for creating/editing profiles
+- Views for help and about
 
-import/export profile functionality
+0.9.0 
+-----
+- import/export profile functionality
 
-finish documenting code
-Pod documentation
+0.10.0 / 1.0.0 Alpha
+--------------------
+- code review
+- finish documenting code
+- Pod documentation
+
+1.0.0 Beta
+----------
+- code freeze
+- bug testing
+
+1.0.0
+-----
+- proposed release date: January 1, 2005
