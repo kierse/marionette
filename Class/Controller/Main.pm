@@ -141,11 +141,44 @@ sub buttonHandler
    {
       my ($list) = @Args;
 
-      
+      print "up button click caught!\n";
    }
    elsif($button->get_label() eq "down")
    {
       print "down button click caught!\n";
+   }
+}
+
+sub listHandler
+{
+   my ($I, $event, $simpleList, $treePath, $treeViewColumn, @Args) = @_;
+   my $model = Class::WirelessApp->getModel();
+
+   print "list double-click caught!\n";
+
+   if($event eq "row-activated")
+   {
+      print "list double click caught!\n";
+
+      my ($selected) = $simpleList->get_selected_indices();
+      my @Data = @{ $simpleList->{data}[$selected] };
+
+      # check if selected profile is a currently available ap
+      #
+      my $profile = $model->getProfileByName($Data[1]);
+      throw Error::Simple("'" . $Data[1] . "' is not available for connetion") unless(
+         grep{ $profile->get("essid") eq $_; } $model->getAvailableNetworks()
+      );
+
+      # create new connection to selected network
+      #
+      my $connection = Class::WirelessApp->getConnection();
+      $connection->disconnect();
+      $connection->connect($profile);
+
+      # notify model of new connected ap...
+      #
+      $model->setConnectedAP($Data[2]);
    }
 }
 

@@ -472,6 +472,7 @@ sub _constructView
    #$list->get_selection()->set_mode('multiple');
    #$list->set_reorderable(TRUE);
    $list->get_selection()->set_mode('single');
+   $list->set_rules_hint(TRUE);
 
    # get all profiles from the model and add to profile list
    #
@@ -498,10 +499,15 @@ sub _constructView
    
    # set action listeners...
    #
-   $up->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(shift @_, $list); });
-   $down->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(shift @_, $list); });
+   $up->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(@_, $list); });
+   $down->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(@_, $list); });
+   $list->signal_connect("row-activated", sub { $I->{"controller"}->listHandler("row-activated", @_); });
 
    $profileBox->pack_start($profileVBox, TRUE, TRUE, 0);
+
+   # store any widgets that will be needed later...
+   #
+   $I->{"list"} = $list;
 
    # Return newly created widgets to caller
    #
