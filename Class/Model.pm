@@ -332,9 +332,9 @@ sub getAPData
 {
    my ($I) = @_;
 
-   $I->scan() if(not exists $I->{'apData'});
+   $I->scan() if(not exists $I->{"apData"});
 
-   return %{$I->{'apData'}};
+   return $I->{"apData"};
 }
 
 # getAPByAddress takes one parameter, an AP address, and searches the 

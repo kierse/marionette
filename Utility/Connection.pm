@@ -94,8 +94,32 @@ sub init
          return;
       }
    }
+   else
+   {
+      print "No currently active connection, identifying best network...\n";
 
-   print "No currently active connection!\n";
+      my $max = 0;
+      my $profile;
+      foreach my $ap (values %{ $model->getAPData() })
+      {
+         next unless my $apProfile = $model->getProfileBySid($ap->{"essid"});
+
+         if( $max < eval($ap->get("quality")) )
+         {
+            $max = eval($ap->get("quality"));
+            $profile = $apProfile;
+         }
+      }
+
+      # found profiled access point with best quality signal,
+      # attempt to connect...
+      #
+      $I->connect($profile) if $profile;
+
+      # notify the model that there is now a connection!
+      #
+      $model->setConnectedAP($profile->get("essid"));
+   } 
 }
 
 sub connect
