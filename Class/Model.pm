@@ -516,6 +516,50 @@ sub exportProfiles
    return $count;
 }
 
+sub clean
+{
+   my ($I) = @_;
+
+   # clean up model...
+   #
+   my $dump = $I->{"config"}{"_dump"} ||= 0;
+   delete $I->{"config"}{"_dump"};
+
+   # if config file has changed, dump file to disk...
+   #
+   if($dump)
+   {
+      # make sure config directory exists...
+      #
+      unless(-d $configDir)
+      {
+         print "Creating config directory at $configDir\n";
+         mkdir($configDir);
+         chmod(0711, $configDir);
+
+         print "Creating profiles directory at " . $I->{"config"}{"profileDir"} . "\n";
+         mkdir($configDir . "/profiles");
+         chmod(0711, $I->{"config"}{"profileDir"});
+      }
+   
+      # use Data::DumpXML object to generate the xml 
+      # config file and write to disk
+      #
+      my $xml = Data::DumpXML->dump_xml($I->{"config"});
+
+      # print out generated xml to config file...
+      #
+      open(CONFIG, ">", $configDir . "/config.xml") or throw ErrorSimple("Unable to write config file to disk");
+      print CONFIG $xml;
+      close(CONFIG);
+   }
+
+   # check if any profile objects have been changed, if yes
+   # write them to disk.
+   #
+   $I->_writeProfiles();
+}
+
 # NOTE: Will need to add ability to scan currently connected access
 # point to update data.  Several values may need to be frequently/semi-
 # frequently updated.  This may be solved with one method or with several
@@ -577,8 +621,7 @@ sub _writeProfiles
       # this profile does not need to be dumped
       # if it hasn't been modified
       #
-      #next unless $ap->isModified();
-      next unless($ap && $ap->isModified());
+      next unless $ap->isModified();
       
       # tidy up profile before dumping to disk...
       #
@@ -593,8 +636,6 @@ sub _writeProfiles
       print PROFILE $xml;
       close(PROFILE);
    }
-
-   return 1;
 }
 
 sub _getAddresses
@@ -635,43 +676,10 @@ sub DESTROY
 {
    my ($I) = @_;
 
-   # if config file has changed, dump file to disk...
+   # if model data hasn't been dumped to disk
+   # call clean method
    #
-   if(exists $I->{"config"}{"_dump"})
-   {
-      # set _dump to 0...
-      #
-      $I->{"config"}{"_dump"} = 0;
-      
-      # make sure config directory exists...
-      #
-      unless(-d $configDir)
-      {
-         print "Creating config directory at $configDir\n";
-         mkdir($configDir);
-         chmod(0711, $configDir);
-
-         print "Creating profiles directory at " . $I->{"config"}{"profileDir"} . "\n";
-         mkdir($configDir . "/profiles");
-         chmod(0711, $I->{"config"}{"profileDir"});
-      }
-   
-      # use Data::DumpXML object to generate the xml 
-      # config file and write to disk
-      #
-      my $xml = Data::DumpXML->dump_xml($I->{"config"});
-
-      # print out generated xml to config file...
-      #
-      open(CONFIG, ">", $configDir . "/config.xml") or throw ErrorSimple("Unable to write config file to disk");
-      print CONFIG $xml;
-      close(CONFIG);
-   }
-
-   # check if any profile objects have been changed, if yes
-   # write them to disk.
-   #
-   $I->_writeProfiles();
+   $I->clean() if $I->{"config"}{"_dump"};
 }
 
 1;#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
