@@ -106,7 +106,7 @@ sub update
 
    # update connection status information
    #
-   if( my $accessPoint = $model->getConnectedAP() )
+   if( my $accessPoint = $model->getConnectedNetwork() )
    {
       $I->{"status"}->set_label(
          $model->isConnected()
@@ -387,7 +387,7 @@ sub _constructView
    # Status Box        #
    #-#-#-#-#-#-#-#-#-#-#
 
-   my $statusFrame = $I->_constructStatus($model->getConnectedAP());
+   my $statusFrame = $I->_constructStatus($model->getConnectedNetwork());
    my $statusVBox = new Gtk2::VBox(FALSE, 0);
    my $statusBox = new Gtk2::HBox(FALSE, 0);
    $statusVBox->pack_start($statusFrame, TRUE, TRUE, 0);
@@ -516,7 +516,7 @@ sub _constructStatus
    my $num = 5;
    if($model->isConnected())
    {
-      my $accessPoint = $model->getConnectedAP();
+      my $accessPoint = $model->getConnectedNetwork();
       my $quality = eval($accessPoint->get("quality"));
 
       $num = ($quality != 0 && $quality < 0.25)
@@ -621,7 +621,7 @@ sub _populateList
       my $pix = undef;
       if(grep{ $profile->get("essid") eq $_; } $model->getAvailableNetworks())
       {
-         $pix = $model->isConnected() && $model->getConnectedAP()->get("essid") eq $profile->get("essid")
+         $pix = $model->isConnected() && $model->getConnectedNetwork()->get("essid") eq $profile->get("essid")
             ? new_from_file Gtk2::Gdk::Pixbuf($appConfigs{"images"}{"connected"})
             : new_from_file Gtk2::Gdk::Pixbuf($appConfigs{"images"}{"available"});
       }

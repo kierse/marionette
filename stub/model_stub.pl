@@ -20,7 +20,10 @@
 
 use strict; use warnings;
 
-use lib "..";
+use FindBin qw($Bin);
+use lib "$Bin/../";
+
+use Class::WirelessApp;
 use Class::Model;
 use Class::AccessPoint;
 use Class::AccessPointProfile;
@@ -28,17 +31,21 @@ use Error qw(:try);
 
 # global variables
 #
-my $mac_address = "";
-my $essid = "";
+my $mac_address = "00:0F:66:36:C0:84";
+my $essid = "Olympus";
+
+# create new wireless object...
+#
+my $wireless = new Class::WirelessApp($Bin);
+my %Config = $wireless->getConfig();
 
 # create a new model object...
 #
-my $model = new Class::Model("wlan0");
+my $model = new Class::Model($Config{"configDir"});
 
 try
 {
    $model->init();
-   $model->scan();
 }
 catch Error with
 {
@@ -71,54 +78,62 @@ print "testing scan...\n";
 $model->scan();
 print "\n";
 
-# test getAPs
+# test getAvailableAPs
 #
 print "testing getAvailableAPs...\n";
 my %APs = $model->getAvailableAPs();
+my @Keys = keys %APs;
+my $list = $APs{$Keys[0]};
+push @{$list}, $$list[0];
+$APs{$Keys[0]} = $list;
 foreach my $t (keys %APs)
 {
-   print $t . " => " . $APs{$t} . "\n";
+	print $t . " => \n";
+	print "[\n";
+	foreach my $a ( @{$APs{$t}} )
+	{
+		print $a;
+	}
+	print "]\n\n";
 }
 
-my @Addrs = keys %APs;
-$mac_address = $Addrs[0];
-$essid = $APs{$mac_address};
+# test getAvailableNetworks
+#
+print "testing getAvailableNetworks...\n";
+my @APs = $model->getAvailableNetworks();
+foreach my $ap (@APs)
+{
+	print $ap . "\n";
+}
 print "\n";
 
-# test getAPData
-#
-print "testing getAPData...\n";
-my %ApData = $model->getAPData();
-foreach my $s (keys %ApData)
-{
-   print $s . " =>\n";
-   print $ApData{$s} . "\n";
-}
+## test getAPData
+##
+#print "testing getAPData...\n";
+#my %ApData = $model->getAPData();
+#foreach my $s (keys %ApData)
+#{
+#   print $s . " =>\n";
+#   print $ApData{$s} . "\n";
+#}
 
-# test getDataByAddress
-#
-print "testing getAPByAddress...\n";
-my $accessPoint = $model->getAPByAddress($mac_address);
-print $mac_address . " => \n";
-print $accessPoint . "\n";
-
-# test getDataBySid
+# test getAPBySid
 #
 print "testing getAPBySid...\n";
 my @SidData = $model->getAPBySid($essid);
 foreach my $ap (@SidData)
 {
-   print $ap->get('address') . " => \n";
    print $ap . "\n";
 }
+print "\n";
 
-# test overloaded "" operators
-#
-print "testing overloaded \"\" operators...\n";
-foreach my $ap ($model->getAPData())
-{
-   print $ap . "\n";
-}
+## test overloaded "" operators
+##
+#print "testing overloaded \"\" operators...\n";
+#foreach my $ap ($model->getAPData())
+#{
+#   print $ap . "\n";
+#}
 
 exit;
 

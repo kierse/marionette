@@ -61,7 +61,7 @@ sub init
    my $num = 5;
    if($model->isConnected())
    {
-      my $accessPoint = $model->getConnectedAP();
+      my $accessPoint = $model->getConnectedNetwork();
       my $quality = eval($accessPoint->get("quality"));
 
       $num = ($quality != 0 && $quality < 0.25)
@@ -97,7 +97,7 @@ sub update
    # data... Multiply decimal value by 4 to get a value on 
    # a four point scale (ie between 0-3, 3 being 75-100%)
    #
-   if( my $accessPoint = $model->getConnectedAP() )
+   if( my $accessPoint = $model->getConnectedNetwork() )
    {
       my $quality = eval($accessPoint->get("quality"));
       my $num = ($quality != 0 && $quality < 0.25)

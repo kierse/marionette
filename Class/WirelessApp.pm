@@ -94,6 +94,10 @@ sub run
    $model = new Class::Model($Config{"configDir"});
    $model->init();
 
+	# before creating the mainView, try and establish a connection
+	#
+	$I->createConnection();
+
    my $mainViewController = new Class::Controller::Main();
    $mainView = new Class::View::Main($mainViewController);
    $mainView->init();

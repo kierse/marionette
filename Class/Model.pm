@@ -120,10 +120,6 @@ sub init
    # perform a scan and look for available wireless access points...
    #
    $I->scan();
-
-   # request new connection object be created...
-   #
-   Class::WirelessApp->getConnection();
 }
 
 # The scan method is the source of the models power.  This is where
@@ -132,9 +128,11 @@ sub init
 # and parses the results.
 #
 # The scan method returns a hash consisting of the following data:
-#   [
-#     address => ApObject
-#   ]
+# (
+#   essid => [ apobject1, apobject2, ... ] 
+#   essid => [ apobject1, apobject2, ... ] 
+#   essid => [ apobject1, apobject2, ... ] 
+# )
 #
 sub scan
 {
@@ -158,14 +156,9 @@ sub scan
 
    my @Points = split(/Cell\s\d+\s\-\s/i, $result);
 
-   # the hash %Sid contains key => value pairs with each 
-   # access points represented by a mac address => sid pair
-   #
-   my %Sid;
-
-   # the hash %Aps contains key => value pairs with a
-   # mac address for the key and a ApObject value
-   #
+	# this variable contains all available access points hashed
+	# on their ESSID name
+	#
    my %APs;
 
    # using results returned from iwlist, populate aps hash
@@ -174,20 +167,39 @@ sub scan
    {
       next unless $ap ne "";
 
-      my $ApObject = new Class::AccessPoint();
-      $ap =~ /address:\s?(.+)\n(.+)?essid:\s?\"?((\w\s?)+)\"?\n/i;
-
-      # address => essid
-      #
-      $Sid{$1} = $3;
-
       # parse data for this access point...
       #
-      $I->_parseScanData($ApObject, $ap);
+      my $ApObject = new Class::AccessPoint();
+      foreach my $line ( split("\n", $ap) ) 
+      { 
+         if($line =~ /address\s?\:\s?(.+)\s?/i)
+         {
+            $ApObject->set("address", $1);
+         }
+         elsif($line =~ /essid\s?\:\s?\"?(.+[^\"])\"?\s?/i)
+         {
+            $ApObject->set("essid", $1);
+         }
+      	elsif($_ =~ /protocol\s?\:\s?(.+)\s?/i)
+      	{
+         	$ApObject->set("protocol", $1);
+      	}
+         elsif($line =~ /mode\s?\:\s?(.+)\s?/i)
+         {
+            $ApObject->set("mode", $1);
+         }
+         elsif($line =~ /encryption\skey\s?\:\s?(.+)\s?/i)
+         {
+            $ApObject->set("encryption", $1);
+         }
+      }
 
-      # address => data
-      #
-      $APs{$1} = $ApObject;
+		# add current essid to hash if it doesn't already exist.
+		# then add new ApObject to list.
+		#
+		my $essid = $ApObject->get("essid");
+		$APs{$essid} = [] unless $APs{$essid};
+		push @{ $APs{$essid} }, $ApObject;
    }
 
    $I->{"apData"} = \%APs;
@@ -196,96 +208,87 @@ sub scan
    #
    $I->updateViews();
 
-   return %Sid;
+   return %APs;
 }
 
 sub scanConnectedAP
 {
    my ($I, $interval) = @_;
-   my %appConfigs = Class::WirelessApp->getConfig();
-   $interval ||= 15000;
+   $interval ||= 0;
 
    # only attempt to scan if there is an active connection...
    #
    return FALSE unless $I->isConnected();
 
-   print "Scanning for changes in Connected AP...\n";
+   print "Scanning Connected Access Point...\n";
 
-   # scan connected ap and pipe results to scan.cache located in users config folder
-   #
-   #my $cmd = $I->{"config"}{"utils"}{"iwlist"} . " " . $I->{'interface'} . " scan > " . $I->{"configDir"} . "/scan.cache 2> /dev/null &";
-   my $cmd = $I->{"config"}{"utils"}{"iwconfig"} . " " . $I->{'interface'} . " > " . $I->{"configDir"} . "/scan.cache 2> /dev/null &";
+  	# scan connected ap and pipe results to scan.cache, located in users config folder
+  	#
+  	my $cmd = $interval
+		? $I->{"config"}{"utils"}{"iwconfig"} . " " . $I->{'interface'} . " > " . $I->{"configDir"} . "/scan.cache 2> /dev/null &"
+		: $I->{"config"}{"utils"}{"iwconfig"} . " " . $I->{'interface'} . " > " . $I->{"configDir"} . "/scan.cache 2> /dev/null";
+	
+	# perform scan...
+	#
    system($cmd) == 0 or throw Error::ExecutionException("Scanning for wireless access points failed");
 
-   # add new timeout to read scan results and update all data
-   # regarding connected access point...
-   #
-   Glib::Timeout->add($interval, sub { $I->updateConnectedAP() });
+	if($interval)
+	{
+   	# add new timeout to read scan results and update all data
+   	# regarding connected access point...
+   	#
+   	Glib::Timeout->add($interval, sub { $I->updateConnectedAP() });
+	}
+	else
+	{
+		$I->UpdateConnectedAP();
+	}
 
    # must return true in order to ensure timeout will be executed again
    #
    return TRUE;
 }
 
-sub updateConnectedAP
+###################
+# getter methods  #
+###################
+
+# getAPBySid takes one parameter, an ESSID, and searches the data
+# gathered by scan for any matching access points.  It returns an
+# array containing all matching access points.  Note:  array may be
+# empty.
+#
+sub getAPBySid
 {
-   my ($I) = @_;
-   
-   print "Updating Connected AP...\n";
+   my ($I, $sid) = @_;
 
-   # if cached text file containing scan results does not exist,
-   # return false
+   # if scan hasn't been called
+   # perform scan...
    #
-   return FALSE unless(-e $I->{"configDir"} . "/scan.cache");
-   
-   open(RESULTS, "<", $I->{"configDir"} . "/scan.cache");
-   my $result = join "", <RESULTS>;
-   close(RESULTS);
-   
-   $result =~ s/(^.+\n)//;
-   $result =~ s/(^\s+)//;
-   $result =~ s/(\n\s+)/\n/g;
+   $I->scan() if(not exists $I->{'apData'});
 
-#   my @Points = split(/Cell\s\d+\s\-\s/i, $result);
-#
-#   # using results returned from iwlist, populate aps hash
-#   #
-#   my $ApObject = $I->getConnectedAP();
-#   foreach my $ap (@Points)
-#   {
-#      next unless($ap ne "" and $ap =~ /essid\s?\:\s?\"?$I->{"connectedAp"}\"?\s?/gi);
-#
-#      # parse data
-#      #
-#      $I->_parseScanData($ApObject, $ap);
-#   }
-
-   # parse data
-   #
-   $I->_parseScanData($I->getConnectedAP(), $result);
-
-   # notify all registered views that model has changed
-   #
-   $I->updateViews();
-
-   # remove calling timeout, data has been updated.  New timeout
-   # will be created if connection remains active and new scan is performed
-   # NOTE:  See Class::Model->scanConnectedAP for details
-   #
-   return FALSE;
+   return @{ $I->{'apData'}{$sid} };
 }
 
-sub getUtils
-{
-   my ($I) = @_;
+## getAPData returns a 2D hash containing all the information gathered by the 
+## scan method.  The data is hashed with an address key and AccessPoint object value.
+##
+#sub getAPData
+#{
+#   my ($I) = @_;
+#
+#   $I->scan() if(not exists $I->{"apData"});
+#
+#   return $I->{"apData"};
+#}
 
-   return %{ $I->{"config"}{"utils"} };
-}
-
-# getAPs returns a hash containing address => essid key value pairs. This 
-# method returns the data gathered during the previous scan.  All available
-# access points are returned, this includes multiple access points with the same
-# name that are part of a greater wireless network.
+# getAvailableAPs returns a hash containing all available access points (including
+# multiple nodes part of a larger network).  Data is organized as follows:
+# (
+#    essid => [ ApObject1, ApObject2, ... ]
+#    essid => [ ApObject1, ApObject2, ... ]
+#    essid => [ ApObject1, ApObject2, ... ]
+# )
 #
 sub getAvailableAPs
 {
@@ -294,18 +297,15 @@ sub getAvailableAPs
    # if scan hasn't been called
    # perform scan...
    #
-   $I->scan() if(not exists $I->{'apData'});
-   
-   my %Aps;
-   my %Available = %{$I->{'apData'}};
-   foreach my $ap (keys %Available)
-   {
-      $Aps{$ap} = $Available{$ap}{'essid'};
-   }
-   
-   return %Aps;
+   $I->scan() unless( $I->{'apData'} );
+
+	return %{$I->{'apData'}};
 }
 
+# getAvailableNetworks returns an array of all available wireless networks
+# in range.  A network is identified by its ESSID and may contain multiple
+# physical access points.
+#
 sub getAvailableNetworks
 {
    my ($I) = @_;
@@ -315,80 +315,36 @@ sub getAvailableNetworks
    #
    $I->scan() if(not exists $I->{'apData'});
 
-   my @Aps = ();
-   my %Available = %{$I->{"apData"}};
-   foreach my $ap (keys %Available)
-   {
-      push @Aps, $Available{$ap}{"essid"};
-   }
-
-   return @Aps;
+   return keys %{$I->{"apData"}};
 }
 
-# getAPData returns a 2D hash containing all the information gathered by the 
-# scan method.  The data is hashed with an address key and AccessPoint object value.
+# getConnectedNetwork returns an AccessPoint object containing data about
+# the currently connected network.
 #
-sub getAPData
+sub getConnectedNetwork()
 {
    my ($I) = @_;
 
-   $I->scan() if(not exists $I->{"apData"});
-
-   return $I->{"apData"};
-}
-
-# getAPByAddress takes one parameter, an AP address, and searches the 
-# data gathered by scan for any matching data.
-#
-sub getAPByAddress
-{
-   my ($I, $address) = @_;
-
-   # NOTE: need to verify given address!
-   #
-   
-   $I->scan() if(not exists $I->{'apData'});
-
-   return $I->{'apData'}{$address};
-}
-
-# getAPBySid takes one parameter, an ESSID, and searches the data
-# gathered by scan for any matching data.
-#
-sub getAPBySid
-{
-   my ($I, $sid) = @_;
-
-   # NOTE: need to verify given sid!
-   #
-   
-   $I->scan() if(not exists $I->{'apData'});
-
-   # parse through APs and return all AP data with given
-   # AP name. Note: There can be more than one AP with
-   # a given name!
-   my @Aps;
-   my %ApData = %{$I->{'apData'}};
-   foreach my $addr (keys %ApData)
-   {
-      push @Aps, $ApData{$addr} if $ApData{$addr}->get('essid') eq $sid;
-   }
-
-   return @Aps;
-}
-
-sub getConnectedAP()
-{
-   my ($I) = @_;
-
+	# if connectedAp is not set, return undef
+	#
+	return undef unless $I->{"connectedAp"};
+	
    my $essid = $I->{"connectedAp"};
-   my %Available = %{$I->{"apData"}};
-   foreach my $ap (keys %Available)
-   {
-      return $Available{$ap} if($Available{$ap}{"essid"} eq $essid);
-   }
+   my @Network = @{ $I->{"apData"}{$essid} };
 
-   return undef;
+	return @Network
+		? $Network[0]
+		: undef;
+}
+
+# getInterface returns a string containing the name of the 
+# wireless network interface currently in use.
+#
+sub getInterface
+{
+   my ($I) = @_;
+
+   return $I->{"config"}{"interface"};
 }
 
 sub getProfiles
@@ -396,18 +352,6 @@ sub getProfiles
    my ($I) = @_;
 
    return values( %{$I->{"profiles"}} );
-}
-
-sub getProfileBySid
-{
-   my ($I, $sid) = @_;
-   
-   foreach my $profile (keys %{$I->{"profiles"}} )
-   {
-      return $I->{"profiles"}{$profile} if($I->{"profiles"}{$profile}->get("essid") eq $sid);
-   }
-
-   return undef;
 }
 
 sub getProfileByAddress
@@ -434,6 +378,18 @@ sub getProfileByName
    return undef;
 }
 
+sub getProfileBySid
+{
+   my ($I, $sid) = @_;
+   
+   foreach my $profile (keys %{$I->{"profiles"}} )
+   {
+      return $I->{"profiles"}{$profile} if($I->{"profiles"}{$profile}->get("essid") eq $sid);
+   }
+
+   return undef;
+}
+
 sub getProfileDir
 {
    my ($I) = @_;
@@ -441,12 +397,17 @@ sub getProfileDir
    return $I->{"config"}{"profileDir"};
 }
 
-sub getInterface
+sub getUtils
 {
    my ($I) = @_;
 
-   return $I->{"config"}{"interface"};
+   return %{ $I->{"config"}{"utils"} };
 }
+
+
+###################
+# setter methods  #
+###################
 
 sub setConnectedAP()
 {
@@ -477,6 +438,13 @@ sub setConnectedAP()
    $I->updateViews();
 }
 
+sub setDisconnected
+{
+   my ($I) = @_;
+
+   $I->{"connected"} = 0;
+}
+
 sub isConnected
 {
    my ($I) = @_;
@@ -484,11 +452,53 @@ sub isConnected
    return $I->{"connected"};
 }
 
-sub setDisconnected
+sub updateConnectedAP
 {
    my ($I) = @_;
+   
+   print "Updating Connected AP...\n";
 
-   $I->{"connected"} = 0;
+   # if cached text file containing scan results does not exist,
+   # return false
+   #
+   return FALSE unless(-e $I->{"configDir"} . "/scan.cache");
+   
+   open(RESULTS, "<", $I->{"configDir"} . "/scan.cache");
+   my $result = join "", <RESULTS>;
+   close(RESULTS);
+   
+   $result =~ s/(^.+\n)//;
+   $result =~ s/(^\s+)//;
+   $result =~ s/(\n\s+)/\n/g;
+
+   # parse data
+   #
+	my $ApObject = $I->
+   foreach my $line (split("\n", $result))
+   { 
+      if($line =~ /quality|signal\slevel|noise\slevel/i)
+      {
+         if($line =~ /quality\s?\:\s?(\d+\/\d+)/i) { $ApObject->set("quality", $1); }
+         if($line =~ /signal\slevel\s?\:\s?(\-?\d+\sdbm)/i) { $ApObject->set("signalLevel", $1); }
+         if($line =~ /noise\slevel\s?\:\s?(\-?\d+\sdbm)/i) { $ApObject->set("noiseLevel", $1); }
+      }
+      elsif($line =~ /bit\srate\s?\:\s?((\d\.?)+)/i)
+      {
+			$ApObject->set("bitrate", $1);
+      }
+   }
+   
+   $ApObject->set("bitRate", \@BitRate) if scalar @BitRate > 0;
+
+   # notify all registered views that model has changed
+   #
+   $I->updateViews();
+
+   # remove calling timeout, data has been updated.  New timeout
+   # will be created if connection remains active and new scan is performed
+   # NOTE:  See Class::Model->scanConnectedAP for details
+   #
+   return FALSE;
 }
 
 sub registerView
@@ -750,18 +760,18 @@ sub _parseScanData
       {
          $ApObject->set("essid", $1);
       }
-      elsif($_ =~ /protocol\s?\:\s?(.+)\s?/i)
-      {
-         $ApObject->set("protocol", $1);
-      }
+#      elsif($_ =~ /protocol\s?\:\s?(.+)\s?/i)
+#      {
+#         $ApObject->set("protocol", $1);
+#      }
       elsif($_ =~ /mode\s?\:\s?(.+)\s?/i)
       {
          $ApObject->set("mode", $1);
       }
-      elsif($_ =~ /frequency\s?\:\s?(.+)\s?/i)
-      {
-         $ApObject->set("frequency", $1);
-      }
+#      elsif($_ =~ /frequency\s?\:\s?(.+)\s?/i)
+#      {
+#         $ApObject->set("frequency", $1);
+#      }
       elsif($_ =~ /quality|signal\slevel|noise\slevel/i)
       {
          if($_ =~ /quality\s?\:\s?(\d+\/\d+)/i) { $ApObject->set("quality", $1); }
@@ -772,10 +782,10 @@ sub _parseScanData
       {
          $ApObject->set("encryption", $1);
       }
-      elsif($_ =~ /bit\srate\s?\:\s?((\d\.?)+)/i)
-      {
-         push @BitRate, $1;
-      }
+#      elsif($_ =~ /bit\srate\s?\:\s?((\d\.?)+)/i)
+#      {
+#         push @BitRate, $1;
+#      }
    } split("\n", $data);
    
    $ApObject->set("bitRate", \@BitRate) if scalar @BitRate > 0;

@@ -5,3 +5,25 @@
    /sbin/iwconfig 2> /dev/null
 
    this will allow me to capture data sent to stdout and hide any data sent to stderr
+
+- create logos
+- create a splash screen to be displayed on startup
+- look into licensing
+- look into autoconf, perl installation scripts, etc
+- look at using /sbin/dhclient instead of /sbin/dhcpcd
+
+--------------
+
+Questions:
+----------
+
+In the model, should getAvailableAPs() return a hash of MAC address
+and essid?  I think an array of available essid's would be fine. 
+The only case where this may not work is if you have multiple APs
+with the same essid that aren't part of the same network.
+
+FIX:
+----------
+- should only perform basic data gathering from iwlist.  Only need 
+just enough to try and connect to ap, no more.  Once connected, I 
+can do a detailed scan on access point and get detailed info

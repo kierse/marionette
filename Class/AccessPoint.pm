@@ -50,16 +50,10 @@ sub new
 
    # initialize object values with given data
    #
-   $this->{"essid"}       = "",
    $this->{"address"}     = "",
+   $this->{"essid"}       = "",
    $this->{"mode"}        = "",
    $this->{"encryption"}  = "",
-   $this->{"protocol"}    = "",
-   $this->{"noiseLevel"}  = "",
-   $this->{"bitRate"}     = (),
-   $this->{"signalLevel"} = "",
-   $this->{"frequency"}   = "",
-   $this->{"quality"}     = "",
    
    return $this;
 }
@@ -96,14 +90,14 @@ sub print
    my ($I) = @_;
    my $value = "";
    
-   $value .= " [\n";
+   $value .= " <\n";
    foreach my $var (keys %$I)
    {
       $value .= $var eq "bitRate"
          ? "   " . $var . " => (" . join(",", @{$I->{$var}}) . ") MB/s\n"
          : "   " . $var . " => " . $I->{$var} . "\n"; 
    }
-   $value .= " ]\n";
+   $value .= " >\n";
 
    return $value;
 }
