@@ -471,13 +471,14 @@ sub _buttonListener
 
       # get data for selected profiles and remove from 
       # model and profile list
+      # Note: have to reverse selected rows list so that profiles
+      #       are removed in reverse order otherwise row numbers
+      #       change as profiles are removed from head :)
       #
+      @Rows = reverse @Rows;
       for(my $i = 0; $i < scalar @Rows; $i++)
       {
          my @Ap = @{ $list->{data}[$Rows[$i]] }; # get profile data...
-print join "\n", @Ap;
-exit;
-         
          $model->destroyProfile($Ap[1]);   # $ap[1] contains profile name
          
          # remove profile from list
