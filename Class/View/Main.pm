@@ -99,8 +99,16 @@ sub init
 sub update
 {
    my ($I) = @_;
+   my $model = Class::WirelessApp->getModel();
+   my $list = $I->{"list"};
 
    print "Updating MainView data...\n";
+
+   # clear current list and repopulate with
+   # new profile data from model...
+   #
+   @{$list->{data}} = ();
+   push @{$list->{data}}, $I->_populateList($model);
 }
 
 sub confirmAction
@@ -454,7 +462,7 @@ sub _constructView
    # create a new Gtk2::SimpleList object
    #
    $list = new Gtk2::SimpleList(
-      '     ' => 'bool',
+      '     ' => 'pixbuf',
       'Profile' => 'text',
       'Access Point' => 'text',
    );
@@ -462,16 +470,12 @@ sub _constructView
    # set any properties on new list
    #
    #$list->get_selection()->set_mode('multiple');
+   #$list->set_reorderable(TRUE);
    $list->get_selection()->set_mode('single');
-   $list->set_reorderable(TRUE);
 
    # get all profiles from the model and add to profile list
    #
-   #foreach my $ap ( $I->{"model"}->getProfiles() )
-   foreach my $ap ( Class::WirelessApp->getModel()->getProfiles() )
-   {
-      push @{$list->{data}}, [0, $ap->get("name"), $ap->get("essid")];
-   }
+   push @{$list->{data}}, $I->_populateList($model);
 
    # create new up/down buttons to move profiles in list
    #
@@ -522,22 +526,30 @@ sub _openFileSelector
    return $scriptChooser->get_filename();
 }
 
-####################
-# callback methods #
-####################
-
-sub _buttonListener
+sub _populateList
 {
-   my ($button, @Args) = @_;
-   my $I = pop @Args;
-   my $controller = $I->{"controller"};
+   my ($I) = @_;
+   my $model = Class::WirelessApp->getModel();
+   
+   my @Profiles = ();
+   foreach my $profile ($model->getProfiles())
+   {
+      my $pix;
+      if(grep{ $profile->get("essid") eq $_; } $model->getAvailableNetworks())
+      {
+         $pix = $model->isConnected() && $model->getConnectedAP()->get("essid") eq $profile->get("essid")
+            ? new_from_file Gtk2::Gdk::Pixbuf("images/connected.gif")
+            : new_from_file Gtk2::Gdk::Pixbuf("images/available.gif");
+      }
+      else
+      {
+         $pix = new_from_file Gtk2::Gdk::Pixbuf("images/unavailable.gif");
+      }
+      
+      push @Profiles, [$pix, $profile->get("name"), $profile->get("essid")];
+   }
 
-print ref $I;
-exit;
-
-   # call MainViewController button handler
-   #
-   $controller->buttonHandler(@Args);
+   return @Profiles;
 }
 
 1;#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#

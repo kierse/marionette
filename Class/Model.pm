@@ -56,7 +56,7 @@ sub new
    #
    $this->{"interface"}    = $interface;
    $this->{"connectedAp"}  = "";
-   $this->{"connection"}   = "";
+   $this->{"connected"}    = 0;
    $this->{"views"}        = (); # create empty array to store views
    $this->{"profiles"}     = {}; # create empty hash to store profiles
    $this->{"config"}       = "";
@@ -271,16 +271,14 @@ sub getAvailableNetworks
    #
    $I->scan() if(not exists $I->{'apData'});
 
-   my %Aps;
+   my @Aps = ();
    my %Available = %{$I->{"apData"}};
-
    foreach my $ap (keys %Available)
    {
-      my $name = $Available{$ap}{"essid"};
-      $Aps{$name} = "";
+      push @Aps, $Available{$ap}{"essid"};
    }
 
-   return keys %Aps;
+   return @Aps;
 }
 
 # getAPData returns a 2D hash containing all the information gathered by the 
@@ -339,8 +337,14 @@ sub getConnectedAP()
 {
    my ($I) = @_;
 
-   my $address = $I->{"connectedAp"};
-   return $I->{"apData"}{$address};
+   my $essid = $I->{"connectedAp"};
+   my %Available = %{$I->{"apData"}};
+   foreach my $ap (keys %Available)
+   {
+      return $Available{$ap} if($Available{$ap}{"essid"} eq $essid);
+   }
+
+   return undef;
 }
 
 sub getProfiles
@@ -395,21 +399,38 @@ sub getProfileDir
 
 sub setConnectedAP()
 {
-   my ($I, $address) = @_;
+   my ($I, $name) = @_;
 
-   if(grep{$address} $I->_getAddresses())
+   if(grep{$name} $I->getAvailableNetworks())
    {
-      $I->{"connectedAp"} = $address;
+      $I->{"connectedAp"} = $name;
    }
    else
    {
-      print "error, the given address is not a valid access point.\n";
-      die;
+      throw Error::Simple("Cannot be connected to specified access point, does not exists or is not within range");
    }
+
+   # set connected flag to true
+   #
+   $I->{"connected"} = 1;
 
    # notify all registered views that model has changed
    #
    $I->updateViews();
+}
+
+sub isConnected
+{
+   my ($I) = @_;
+
+   return $I->{"connected"};
+}
+
+sub setDisconnected
+{
+   my ($I) = @_;
+
+   $I->{"connected"} = 0;
 }
 
 sub registerView
@@ -433,7 +454,7 @@ sub removeView
    }
 
    $I->{"views"} = scalar @Views > 0
-      ? @Views
+      ? \@Views
       : [];
    print "remaining views: " . scalar @{$I->{"views"}} . "\n";
 }

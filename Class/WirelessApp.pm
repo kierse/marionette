@@ -69,6 +69,10 @@ sub run
    $tray->add($pix);
    $tray->show_all();
 
+   # register new Main view with model...
+   #
+   $model->registerView($mainView);
+
    # start up gtk and wait for user input
    #
    Gtk2->main();
