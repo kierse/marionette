@@ -20,7 +20,7 @@
 #
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-package Class::View;
+package Class::View::View;
 
 use strict; use warnings;
 

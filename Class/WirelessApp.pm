@@ -26,10 +26,10 @@ use Gtk2 '-init';
 use Gtk2::TrayIcon;
 
 use Class::Model;
-use Class::MainView;
-use Class::MainViewController;
-use Class::ProfileManagementView;
-use Class::ScanView;
+use Class::View::Main;
+use Class::View::ProfileManagement;
+use Class::View::Scan;
+use Class::Controller::Main;
 
 # Global variables
 #
@@ -55,8 +55,8 @@ sub run
    $model = new Class::Model("wlan0");
    $model->init();
 
-   my $mainViewController = new Class::MainViewController();
-   $mainView = new Class::MainView($mainViewController);
+   my $mainViewController = new Class::Controller::Main();
+   $mainView = new Class::View::Main($mainViewController);
    $mainView->init();
 
    my $tray = new Gtk2::TrayIcon("test");
@@ -97,7 +97,7 @@ sub createProfileManagementView
    my ($class, $page) = @_;
 
    my $profileManagementController = "";
-   my $profileManagementView = new Class::ProfileManagementView($profileManagementController);
+   my $profileManagementView = new Class::View::ProfileManagement($profileManagementController);
    $profileManagementView->init();
    $profileManagementView->setPage($page);
 
@@ -109,7 +109,7 @@ sub createScanView
    my ($class) = @_;
 
    my $scanViewController = "";
-   my $scanView = new Class::ScanView($scanViewController);
+   my $scanView = new Class::View::Scan($scanViewController);
    $scanView->init();
 
    return $scanView;

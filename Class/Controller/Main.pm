@@ -18,12 +18,12 @@
 #
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-package Class::MainViewController;
+package Class::Controller::Main;
 
 use strict; use warnings;
 
 use Class::Model;
-use Class::MainView;
+use Class::View::Main;
 
 ##################
 # public methods #

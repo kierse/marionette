@@ -18,7 +18,7 @@
 #
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-package Class::MainView;
+package Class::View::Main;
 
 use strict; use warnings;
 
@@ -27,14 +27,14 @@ use Gtk2::SimpleMenu;
 use Error qw(:try);
 
 use Class::WirelessApp;
-use Class::View;
 use Class::Model;
 use Class::AccessPoint;
 use Class::AccessPointProfile;
+use Class::View::View;
 
 # declare parent classes
 #
-our @ISA = ("Class::View");
+our @ISA = ("Class::View::View");
 
 # global variables
 #

@@ -18,17 +18,17 @@
 #
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-package Class::ScanView;
+package Class::View::Scan;
 
 use strict; use warnings;
 
 use Class::WirelessApp;
-use Class::View;
 use Class::Model;
+use Class::View::View;
 
 # declare parent classes
 #
-our @ISA = ("Class::View");
+our @ISA = ("Class::View::View");
 
 # global variables
 #
