@@ -30,8 +30,8 @@ my %Params = (
    key => "08493232EF7015982EF3B38A9B",
 );
 
-my $connection = new Class::Connection();
-$connection->init("wlan0");
+my $connection = new Class::Connection("wlan0");
+$connection->init();
 
 print "connecting...\n";
 $connection->connect(%Params);

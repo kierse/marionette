@@ -35,7 +35,6 @@ use Class::AccessPointProfile;
 # global variables
 #
 my $configDir = $ENV{"HOME"} . "/.wireless_app";
-my $iwlist = "/usr/sbin/iwlist";
 
 ##################
 # public methods #
@@ -57,9 +56,9 @@ sub new
    #
    $this->{"interface"}    = $interface;
    $this->{"connectedAp"}  = "";
+   $this->{"connection"}   = "";
    $this->{"views"}        = (); # create empty array to store views
    $this->{"profiles"}     = {}; # create empty hash to store profiles
-   $this->{"iwlist"}       = "";
    $this->{"config"}       = "";
 
    return $this;
@@ -137,12 +136,12 @@ sub scan
    
    # only proceed if iwlist is present on system...
    #
-   throw Error::Simple("Unable to locate linux wireless statistics application iwlist at '$iwlist', unable to proceed") unless(-e $iwlist);
+   throw Error::Simple("Unable to locate linux wireless statistics application iwlist at '" . $I->{"config"}{"utils"}{"iwlist"} . "', unable to proceed") unless(-e $I->{"config"}{"utils"}{"iwlist"});
 
    # scan for available wireless access points using iwlist
    # and capture results
    #
-   my $cmd = $iwlist . " " . $I->{'interface'} . " scan";
+   my $cmd = $I->{"config"}{"utils"}{"iwlist"} . " " . $I->{'interface'} . " scan";
    my $result = `$cmd` or throw Error::Simple("Scanning for wireless access points failed");
 
    $result =~ s/(^.+\n)//;
@@ -168,7 +167,7 @@ sub scan
       next unless $ap ne "";
 
       my $ApObject = new Class::AccessPoint();
-      $ap =~ /address\s?:\s?(.+)\n(.+)?essid\s?:\s?\"?(\w+)\"?\n/i;
+      $ap =~ /address:\s?(.+)\n(.+)?essid:\s?\"?((\w\s?)+)\"?\n/i;
 
       # address => essid
       #
@@ -232,17 +231,26 @@ sub scan
    return %Sid;
 }
 
+sub getUtils
+{
+   my ($I) = @_;
+
+   return %{ $I->{"config"}{"utils"} };
+}
+
 # getAPs returns a hash containing address => essid key value pairs. This 
-# method returns the data gathered during the previous scan.
+# method returns the data gathered during the previous scan.  All available
+# access points are returned, this includes multiple access points with the same
+# name that are part of a greater wireless network.
 #
-sub getAPs
+sub getAvailableAPs
 {
    my ($I) = @_;
    
-   # if 'avaiable' variable isn't set, scan hasn't been called
-   # perform scan and return results...
+   # if scan hasn't been called
+   # perform scan...
    #
-   return $I->scan() if(not exists $I->{'apData'});
+   $I->scan() if(not exists $I->{'apData'});
    
    my %Aps;
    my %Available = %{$I->{'apData'}};
@@ -252,6 +260,27 @@ sub getAPs
    }
    
    return %Aps;
+}
+
+sub getAvailableNetworks
+{
+   my ($I) = @_;
+
+   # if scan hasn't been called
+   # perform scan...
+   #
+   $I->scan() if(not exists $I->{'apData'});
+
+   my %Aps;
+   my %Available = %{$I->{"apData"}};
+
+   foreach my $ap (keys %Available)
+   {
+      my $name = $Available{$ap}{"essid"};
+      $Aps{$name} = "";
+   }
+
+   return keys %Aps;
 }
 
 # getAPData returns a 2D hash containing all the information gathered by the 
@@ -266,31 +295,31 @@ sub getAPData
    return %{$I->{'apData'}};
 }
 
-# getDataByAddress takes one parameter, an AP address, and searches the 
+# getAPByAddress takes one parameter, an AP address, and searches the 
 # data gathered by scan for any matching data.
 #
-sub getDataByAddress
+sub getAPByAddress
 {
    my ($I, $address) = @_;
 
    # NOTE: need to verify given address!
    #
-
+   
    $I->scan() if(not exists $I->{'apData'});
 
    return $I->{'apData'}{$address};
 }
 
-# getDataBySid takes one parameter, an ESSID, and searches the data
+# getAPBySid takes one parameter, an ESSID, and searches the data
 # gathered by scan for any matching data.
 #
-sub getDataBySid
+sub getAPBySid
 {
    my ($I, $sid) = @_;
 
    # NOTE: need to verify given sid!
    #
-
+   
    $I->scan() if(not exists $I->{'apData'});
 
    # parse through APs and return all AP data with given
@@ -321,18 +350,47 @@ sub getProfiles
    return values( %{$I->{"profiles"}} );
 }
 
+sub getProfileBySid
+{
+   my ($I, $sid) = @_;
+   
+   foreach my $profile (keys %{$I->{"profiles"}} )
+   {
+      return $I->{"profiles"}{$profile} if($I->{"profiles"}{$profile}->get("essid") eq $sid);
+   }
+
+   return undef;
+}
+
+sub getProfileByAddress
+{
+   my ($I, $address) = @_;
+
+   foreach my $profile (keys %{$I->{"profiles"}} )
+   {
+      return $I->{"profiles"}{$profile} if($I->{"profiles"}{$profile}->get("address") eq $address);
+   }
+
+   return undef;
+}
+
+sub getProfileByName
+{
+   my ($I, $name) = @_;
+   
+   foreach my $profile (keys %{$I->{"profiles"}} )
+   {
+      return $I->{"profiles"}{$profile} if($profile eq $name);
+   }
+
+   return undef;
+}
+
 sub getProfileDir
 {
    my ($I) = @_;
 
    return $I->{"config"}{"profileDir"};
-}
-
-sub getStartupScript
-{
-   my ($I) = @_;
-
-   return $I->{"config"}{"startupScript"};
 }
 
 sub setConnectedAP()
@@ -626,10 +684,10 @@ sub _loadProfiles
       my $profile = $$object[1];
       bless $profile, "Class::AccessPointProfile";
 
+      # add profile to list and name => pointer pair to index
+      #
       $I->{"profiles"}{ $profile->get("name") } = $profile;
    }
-
-   return 1;
 }
 
 sub _writeProfiles
@@ -708,11 +766,35 @@ sub _generateDefaultConfig
 {
    my ($I) = @_;
 
+   # determine the location of a few necessary utilities...
+   #
+   my $iwlist = `whereis -b iwlist`;
+   my $iwconfig = `whereis -b iwconfig`;
+   my $ifconfig = `whereis -b ifconfig`;
+   my $dhcpcd = `whereis -b dhcpcd`;
+   $iwlist =~ s/(.+)?\:\s(.+)?\n/$2/gi;
+   $iwconfig =~ s/(.+)?\:\s(.+)?\n/$2/gi;
+   $ifconfig =~ s/(.+)?\:\s(.+)?\n/$2/gi;
+   $dhcpcd =~ s/(.+)?\:\s(.+)?\n/$2/gi;
+   
+   # verify that all the utilities are present on the system...
+   #
+   throw Error::Simple("Error: Unable to find utility 'iwlist'.  Unable to proceed!") unless($iwlist && $iwlist ne "");
+   throw Error::Simple("Error: Unable to find utility 'iwconfig'.  Unable to proceed!") unless($iwconfig && $iwconfig ne "");
+   throw Error::Simple("Error: Unable to find utility 'ifconfig'.  Unable to proceed!") unless($ifconfig && $ifconfig ne "");
+   throw Error::Simple("Error: Unable to find utility 'dhcpcd'.  Unable to proceed!") unless($dhcpcd && $dhcpcd ne "");
+
    # set default config values
    #
    my %config = (
       startupScript => "",
       profileDir => "$configDir/profiles",
+      utils => {
+         iwlist => $iwlist,
+         iwconfig => $iwconfig,
+         ifconfig => $ifconfig,
+         dhcpcd => $dhcpcd,
+      },
       _dump => 1,
    );
    $I->{"config"} = \%config;

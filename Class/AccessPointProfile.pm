@@ -58,6 +58,13 @@ sub new
    return $this;
 }
 
+sub getConnectionParams
+{
+   my ($I) = @_;
+
+   return %{$I};
+}
+
 # get a property - read only
 #
 sub get

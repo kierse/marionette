@@ -41,40 +41,40 @@ use constant FALSE => 0;
 
 sub new
 {
-   my ($class) = @_;
+   my ($class, $interface) = @_;
    my $this = {};
 
    bless $this, $class;
+
+   $this->{"interface"} = $interface;
 
    return $this;
 }
 
 sub init
 {
-   my ($I, $interface) = @_;
+   my ($I) = @_;
+
+   my %Utils = Class::WirelessApp->getModel()->getUtils();
 
    # determine the location of a few necessary utilities...
    #
-   my $iwconfig = `whereis -b iwconfig`;
-   my $ifconfig = `whereis -b ifconfig`;
-   my $dhcpcd = `whereis -b dhcpcd`;
-   $iwconfig =~ s/(.+)?\:\s(.+)?\n/$2/gi;
-   $ifconfig =~ s/(.+)?\:\s(.+)?\n/$2/gi;
-   $dhcpcd =~ s/(.+)?\:\s(.+)?\n/$2/gi;
+   my $iwconfig = $Utils{"iwconfig"};
+   my $ifconfig = $Utils{"ifconfig"};
+   my $dhcpcd = $Utils{"dhcpcd"};
 
-   throw Error::Simple("Error: Unable to find utility 'iwconfig'.  Unable to proceed!") unless($iwconfig && $iwconfig ne "");
-   throw Error::Simple("Error: Unable to find utility 'ifconfig'.  Unable to proceed!") unless($ifconfig && $ifconfig ne "");
-   throw Error::Simple("Error: Unable to find utility 'dhcpcd'.  Unable to proceed!") unless($ifconfig && $ifconfig ne "");
+   throw Error::Simple("Error: Unable to execute utility 'iwconfig'.  Unable to proceed!") unless(-x $iwconfig);
+   throw Error::Simple("Error: Unable to execute utility 'ifconfig'.  Unable to proceed!") unless(-x $ifconfig);
+   throw Error::Simple("Error: Unable to execute utility 'dhcpcd'.  Unable to proceed!") unless(-x $dhcpcd);
    
    $I->{"iwconfig"} = $iwconfig;
    $I->{"ifconfig"} = $ifconfig;
    $I->{"dhcpcd"} = $dhcpcd;
-   $I->{"interface"} = $interface;
 }
 
 sub connect
 {
-   my ($I, %Params) = @_;
+   my ($I, $profile) = @_;
 
    #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
    # begin by setting up new connection using given parameters #
@@ -82,23 +82,28 @@ sub connect
 
    # set connection mode...
    #
-   if( system($I->{"iwconfig"}, $I->{"interface"}, "mode", $Params{"mode"}) < 0 )
+   print $I->{"iwconfig"} . " " . $I->{"interface"} . " mode " . $profile->get("mode") . "\n";
+   if( system($I->{"iwconfig"} . " " . $I->{"interface"} . " mode " . $profile->get("mode")) < 0 )
+   #if( system($I->{"iwconfig"}, $I->{"interface"}, "mode", $profile->get("mode")) < 0 )
    {
       throw Error::Simple("Failed setting interface mode");
    }
 
    # set essid...
    #
-   if( system($I->{"iwconfig"} . " " . $I->{"interface"} . " essid " . $Params{"essid"}) < 0 )
+   print $I->{"iwconfig"} . " " . $I->{"interface"} . " essid \"" . $profile->get("essid") . "\"\n";
+   if( system($I->{"iwconfig"} . " " . $I->{"interface"} . " essid \"" . $profile->get("essid") . "\"") < 0 )
+   #if( system($I->{"iwconfig"}, $I->{"interface"}, "essid", "\"" . $profile->get("essid") . "\"") < 0 )
    {
       throw Error::Simple("Failed setting interface essid");
    }
 
    # set encryption key, if any
    #
-   if($Params{"encryption"} eq "on")
+   if($profile->get("encryption") eq "on")
    {
-      if( system($I->{"iwconfig"} . " " . $I->{"interface"} . " key " . $Params{"key"}) < 0 )
+      print $I->{"iwconfig"} . " " . $I->{"interface"} . " key " . $profile->get("key") . "\n";
+      if( system($I->{"iwconfig"}, $I->{"interface"}, "key", $profile->get("key")) < 0 )
       {
          throw Error::Simple("Failed setting encryption key");
       }
@@ -108,15 +113,20 @@ sub connect
    # start up wireless device and request new ip #
    #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-   if( system($I->{"ifconfig"} . " " . $I->{"interface"} . " up") < 0 )
+   print $I->{"ifconfig"} . " " . $I->{"interface"} . " up" . "\n";
+   if( system($I->{"ifconfig"}, $I->{"interface"}, "up") < 0 )
+   #if( system($I->{"ifconfig"}, $I->{"interface"}, "up") < 0 )
    {
       throw Error::Simple("Failed initializing interface");
    }
 
+   print $I->{"dhcpcd"} . " " . $I->{"interface"} . "\n";
    if( system($I->{"dhcpcd"} . " " . $I->{"interface"}) < 0 )
    {
       throw Error::Simple("Failed aquiring new ip address");
    }
+
+   print "done\n";
 }
 
 sub disconnect
@@ -125,7 +135,8 @@ sub disconnect
 
    # terminate existing connection (if one exists)
    #
-   if( system($I->{"dhcpcd"} . " -k " . $I->{"interface"}) < 0 )
+   print $I->{"dhcpcd"} . " -k " . $I->{"interface"} . "\n";
+   if( system($I->{"dhcpcd"}, "-k", $I->{"interface"}) < 0 )
    {
       throw Error::Simple("Failed to terminate connection");
    }

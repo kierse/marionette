@@ -277,65 +277,6 @@ sub _constructView
 
    # create a menu hierarchy in a tree format...
    #
-#   my @menu_tree = (
-#      {
-#         path => "/_File",
-#         type => "<Branch>",
-#      },
-#         {
-#            path => "/File/_Quit",
-#            accelerator => "<ctrl>Q",
-#            callback => "",
-#         },
-#      {
-#         path => "/_Edit",
-#         type => "<Branch>",
-#      },
-#         {
-#            path => "/Edit/_New Profile",
-#            accelerator => "<ctrl>N",
-#            callback => "",
-#         },
-#         {
-#            path => "/Edit/_Edit Profile",
-#            accelerator => "<ctrl>E",
-#            callback => "",
-#         },
-#         {
-#            path => "/Edit/_Delete Profile",
-#            accelerator => "<ctrl>D",
-#            callback => "",
-#         },
-#      {
-#         path => "/_Profile Management",
-#         type => "<Branch>",
-#      },
-#         {
-#            path => "/Profile Management/_Import Profiles...",
-#            accelerator => "",
-#            callback => "",
-#         },
-#         {
-#            path => "/Profile Management/_Export Profiles...",
-#            accelerator => "",
-#            callback => "",
-#         },
-#      {
-#         path => "/_Help",
-#         type => "<LastBranch>",
-#      },
-#         {
-#            path => "/Help/About",
-#            accelerator => "<ctrl>A",
-#            callback => "",
-#         },
-#         {
-#            path => "/Help/Help",
-#            accelerator => "<ctrl>H",
-#            callback => "",
-#         },
-#   );
-
    my $menu_tree = [
       _File => {
 		   item_type => '<Branch>',
@@ -467,7 +408,7 @@ sub _constructView
 
    # set startup script and profile directory fields...
    #
-   $startupEntry->set_text( $model->getStartupScript() );
+   #$startupEntry->set_text( $model->getStartupScript() );
    $profileEntry->set_text( $model->getProfileDir() );
 
    #-#-#-#-#-#-#-#-#-#-#

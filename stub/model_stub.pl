@@ -28,8 +28,8 @@ use Error qw(:try);
 
 # global variables
 #
-my $mac_address = "00:0F:66:36:C0:84";
-my $essid = "Olympus";
+my $mac_address = "";
+my $essid = "";
 
 # create a new model object...
 #
@@ -53,7 +53,7 @@ catch Error with
 #
 print "\ntesting config variables...\n";
 print "profileDir => '" . $model->getProfileDir() . "'\n";
-print "startupScript => '" . $model->getStartupScript() ."'\n";
+#print "startupScript => '" . $model->getStartupScript() ."'\n";
 print "\n";
 
 # test if profiles were successfully loaded
@@ -68,23 +68,21 @@ print "\n";
 # test scan
 #
 print "testing scan...\n";
-my %Sid = $model->scan();
-foreach my $t (keys %Sid)
-{
-   print $t . " => " . $Sid{$t} . "\n";
-}
-
+$model->scan();
 print "\n";
 
 # test getAPs
 #
-print "testing getAPs...\n";
-my %APs = $model->getAPs();
+print "testing getAvailableAPs...\n";
+my %APs = $model->getAvailableAPs();
 foreach my $t (keys %APs)
 {
    print $t . " => " . $APs{$t} . "\n";
 }
 
+my @Addrs = keys %APs;
+$mac_address = $Addrs[0];
+$essid = $APs{$mac_address};
 print "\n";
 
 # test getAPData
@@ -99,15 +97,15 @@ foreach my $s (keys %ApData)
 
 # test getDataByAddress
 #
-print "testing getDataByAddress...\n";
-my $accessPoint = $model->getDataByAddress($mac_address);
+print "testing getAPByAddress...\n";
+my $accessPoint = $model->getAPByAddress($mac_address);
 print $mac_address . " => \n";
 print $accessPoint . "\n";
 
 # test getDataBySid
 #
-print "testing getDataBySid...\n";
-my @SidData = $model->getDataBySid($essid);
+print "testing getAPBySid...\n";
+my @SidData = $model->getAPBySid($essid);
 foreach my $ap (@SidData)
 {
    print $ap->get('address') . " => \n";

@@ -26,6 +26,7 @@ use Gtk2 '-init';
 use Gtk2::TrayIcon;
 
 use Class::Model;
+use Class::Connection;
 use Class::View::Main;
 use Class::View::ProfileManagement;
 use Class::View::Scan;
@@ -36,6 +37,7 @@ use Class::Controller::Scan;
 #
 my $model;
 my $mainView;
+my $connection;
 
 sub new
 {
@@ -93,6 +95,18 @@ sub getMainView
    return $mainView;
 }
 
+sub getConnection
+{
+   my ($class) = @_;
+
+   unless($connection && $connection->isa("Class::Connection"))
+   {
+      Class::WirelessApp->createConnection();  
+   }
+
+   return $connection;
+}
+
 sub createProfileManagementView
 {
    my ($class, $page) = @_;
@@ -118,6 +132,16 @@ sub createScanView
    $model->registerView($scanView);
 
    return $scanView;
+}
+
+sub createConnection
+{
+   my ($class) = @_;
+
+   $connection = new Class::Connection("wlan0");
+   $connection->init();
+
+   return $connection;
 }
 
 1;#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#

@@ -58,7 +58,7 @@ sub init
    # create new Gtk2 Window
    #
    my $window = new Gtk2::Window();
-   $window->signal_connect("destroy", sub { $model->removeView($I); $window->destroy(); });
+   $window->signal_connect("destroy", sub { $I->close(); });
 
    # begin building scan view...
    #
@@ -66,7 +66,7 @@ sub init
 
    # construct list
    #
-   my $list = $I->_constructList($model->getAPs());
+   my $list = $I->_constructList($model);
    my $listVBox = new Gtk2::VBox(FALSE, 0);
    my $listContainer = new Gtk2::HBox(FALSE, 0);
    $listVBox->pack_start($list, TRUE, TRUE, 10);
@@ -109,12 +109,22 @@ sub update
    # clear current list and repopulate with
    # new available access point list from model...
    #
-   my %Aps = $model->getAPs();
    @{$list->{data}} = ();
-   foreach my $ap (keys %Aps)
-   {
-      push @{$list->{data}}, ["", $Aps{$ap}, $ap];
-   }
+   push @{$list->{data}}, $I->_populateList($model);
+}
+
+sub close
+{
+   my ($I) = @_;
+   my $model = Class::WirelessApp->getModel();
+
+   # remove scan view from models list of current views
+   #
+   $model->removeView($I);
+
+   # destroy window
+   #
+   $I->{"window"}->destroy();
 }
 
 ###################
@@ -123,7 +133,7 @@ sub update
 
 sub _constructList
 {
-   my ($I, %Aps) = @_;
+   my ($I, $model) = @_;
 
    my $list = new Gtk2::SimpleList(
       'Profile' => 'text',
@@ -134,11 +144,8 @@ sub _constructList
    # set any properties on new list
    #
    $list->get_selection()->set_mode('single');
-   
-   foreach my $ap (keys %Aps)
-   {
-      push @{$list->{data}}, ["", $Aps{$ap}, $ap];
-   }
+
+   push @{$list->{data}}, $I->_populateList($model);
 
    return $list;
 }
@@ -160,8 +167,27 @@ sub _constructButtons
    # set action handlers...
    #
    $scan->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(@_); });
-   $connect->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(@_, $list); });
-   $cancel->signal_connect("clicked", sub { $model->removeView($I); $I->{"window"}->destroy(); });
+   $connect->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(@_, $list, $I); });
+   $cancel->signal_connect("clicked", sub { $I->close(); });
 
    return $buttonBox;
+}
+
+sub _populateList
+{
+   my ($I, $model) = @_;
+
+   my @Aps;
+   foreach my $ap ($model->getAvailableNetworks())
+   {
+      my @Apoint = $model->getAPBySid($ap);
+      my $profile = $model->getProfileBySid($ap);
+      $profile = $profile
+         ? $profile->get("name")
+         : "";
+
+      push @Aps, [$profile, $ap, $Apoint[0]->get("address")];
+   }
+
+   return @Aps;
 }
