@@ -1,6 +1,6 @@
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 #
-#   Class:          Model.pm
+#   Class:          Class::Model
 #
 #   Author:         Kier Elliott
 #
@@ -113,6 +113,10 @@ sub init
       #
       throw Error::Simple("Given profile directory does not have adequate read/write permissions") unless(-r $profileDir && -w $profileDir);
    }
+
+   # perform a scan and look for available wireless access points...
+   #
+   $I->scan();
 }
 
 # The scan method is the source of the models power.  This is where
@@ -355,19 +359,25 @@ sub registerView
    my ($I, $view) = @_;
 
    push @{$I->{"views"}}, $view;
+   print "registering new view!\n";
+   print "registered views: " . scalar @{$I->{"views"}} . "\n";
 }
 
 sub removeView
 {
    my ($I, $view) = @_;
 
+   print "removing existing view!\n";
    my @Views = ();
    foreach my $current ( @{$I->{"views"}} )
    {
       push @Views, $current if($view != $current);
    }
 
-   $I->{"views"} = @Views;
+   $I->{"views"} = scalar @Views > 0
+      ? @Views
+      : [];
+   print "remaining views: " . scalar @{$I->{"views"}} . "\n";
 }
 
 sub updateViews

@@ -1,6 +1,6 @@
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 #
-#   Class:          ScanView.pm
+#   Class:          Class::View::Scan
 #
 #   Author:         Kier Elliott
 #
@@ -58,21 +58,33 @@ sub init
    # create new Gtk2 Window
    #
    my $window = new Gtk2::Window();
+   $window->signal_connect("destroy", sub { $model->removeView($I); $window->destroy(); });
 
    # begin building scan view...
    #
-   my $apBox = new Gtk2::HBox(FALSE, 0);
+   my $availableBox = new Gtk2::VBox(FALSE, 5);
 
    # construct list
    #
-   my $list = $I->_constructList($model->scan());
+   my $list = $I->_constructList($model->getAPs());
+   my $listVBox = new Gtk2::VBox(FALSE, 0);
+   my $listContainer = new Gtk2::HBox(FALSE, 0);
+   $listVBox->pack_start($list, TRUE, TRUE, 10);
+   $listContainer->pack_start($listVBox, TRUE, TRUE, 10);
 
-   my $vbox = new Gtk2::VBox(FALSE, 0);
-   my $hbox = new Gtk2::HBox(FALSE, 0);
-   $vbox->pack_start($list, TRUE, TRUE, 5);
-   $hbox->pack_start($vbox, TRUE, TRUE, 5);
-
-   $window->add($hbox);
+   # construct buttons...
+   #
+   my $buttons = $I->_constructButtons($list);
+   my $buttonVBox = new Gtk2::VBox(FALSE, 0);
+   my $buttonContainer = new Gtk2::HBox(FALSE, 0);
+   $buttonVBox->pack_start($buttons, TRUE, TRUE, 10);
+   $buttonContainer->pack_start($buttonVBox, TRUE, TRUE, 10);
+   
+   # add list and buttons to container and add to window...
+   #
+   $availableBox->pack_start($listContainer, TRUE, TRUE, 0);
+   $availableBox->pack_start($buttonContainer, TRUE, TRUE, 0);
+   $window->add($availableBox);
 
    # set a few properties on the window object...
    #
@@ -81,8 +93,28 @@ sub init
    $window->set_position('center');
 
    $I->{"window"} = $window;
+   $I->{"list"} = $list;
 
    $window->show_all();
+}
+
+sub update
+{
+   my ($I) = @_;
+   my $model = Class::WirelessApp->getModel();
+   my $list = $I->{"list"};
+
+   print "Updating ScanView data...\n";
+   
+   # clear current list and repopulate with
+   # new available access point list from model...
+   #
+   my %Aps = $model->getAPs();
+   @{$list->{data}} = ();
+   foreach my $ap (keys %Aps)
+   {
+      push @{$list->{data}}, ["", $Aps{$ap}, $ap];
+   }
 }
 
 ###################
@@ -109,4 +141,27 @@ sub _constructList
    }
 
    return $list;
+}
+
+sub _constructButtons
+{
+   my ($I, $list) = @_;
+   my $model = Class::WirelessApp->getModel();
+
+   my $buttonBox = new Gtk2::HBox(FALSE, 0);
+
+   my $scan = new_with_label Gtk2::Button("Scan");
+   my $connect = new_with_label Gtk2::Button("Connect");
+   my $cancel = new_with_label Gtk2::Button("Cancel");
+   $buttonBox->pack_start($scan, TRUE, TRUE, 0);
+   $buttonBox->pack_end($cancel, TRUE, TRUE, 0);
+   $buttonBox->pack_end($connect, TRUE, TRUE, 0);
+
+   # set action handlers...
+   #
+   $scan->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(@_); });
+   $connect->signal_connect("clicked", sub { $I->{"controller"}->buttonHandler(@_, $list); });
+   $cancel->signal_connect("clicked", sub { $model->removeView($I); $I->{"window"}->destroy(); });
+
+   return $buttonBox;
 }

@@ -1,6 +1,6 @@
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 #
-#   Class:          ProfileManagementView.pm
+#   Class:          Class::View::ProfileManagement
 #
 #   Author:         Kier Elliott
 #

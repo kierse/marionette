@@ -1,6 +1,6 @@
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 #
-#   Class:          MainViewController.pm
+#   Class:          Class::Controller::Main
 #
 #   Author:         Kier Elliott
 #
@@ -135,7 +135,7 @@ sub buttonHandler
    {
       print "scan button click caught!\n";
 
-      my $scanView = Class::WirelessApp->createScanView();
+      Class::WirelessApp->createScanView();
    }
    elsif($button->get_label() eq "up")
    {

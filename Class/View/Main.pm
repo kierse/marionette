@@ -1,6 +1,6 @@
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 #
-#   Class:          MainView.pm
+#   Class:          Class::View::Main
 #
 #   Author:         Kier Elliott
 #
@@ -94,26 +94,6 @@ sub init
    $I->{"window"} = $window;
 
    $window->show_all();
-}
-
-sub newProfile
-{
-
-}
-
-sub editProfile
-{
-
-}
-
-sub deleteProfile
-{
-
-}
-
-sub updateAccessPoints
-{
-
 }
 
 sub update

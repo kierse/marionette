@@ -1,6 +1,6 @@
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 #
-#   Class:          WirelessApp.pm
+#   Class:          Class::WirelessApp
 #
 #   Author:         Kier Elliott
 #
@@ -30,6 +30,7 @@ use Class::View::Main;
 use Class::View::ProfileManagement;
 use Class::View::Scan;
 use Class::Controller::Main;
+use Class::Controller::Scan;
 
 # Global variables
 #
@@ -108,9 +109,13 @@ sub createScanView
 {
    my ($class) = @_;
 
-   my $scanViewController = "";
+   my $scanViewController = new Class::Controller::Scan();
    my $scanView = new Class::View::Scan($scanViewController);
    $scanView->init();
+
+   # register the new view with the model...
+   #
+   $model->registerView($scanView);
 
    return $scanView;
 }

@@ -22,7 +22,7 @@ use strict; use warnings;
 
 use lib "..";
 use Class::Model;
-use Class::MainView;
+use Class::View::Main;
 
 # global variables
 #
@@ -34,7 +34,7 @@ $model->init();
 
 # create a new view object...
 #
-my $view = new Class::MainView($model);
+my $view = new Class::View::Main($model);
 $view->init();
 
 ## scan for available accesspoints
