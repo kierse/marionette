@@ -48,11 +48,20 @@ use constant FALSE => 0;
 
 sub new
 {
-   my ($class, $model) = @_;
+   #my ($class, $model) = @_;
+   my ($class) = @_;
 
    # Initialize parent class
    #
-   my $this = $class->SUPER::new($model);
+   my $this = $class->SUPER::new();
+
+   # declare all variables
+   #
+   $this->{"window"} = "";
+   $this->{"profileList"} = "";
+   $this->{"startupScript"} = "";
+   $this->{"profileDir"} = "";
+   $this->{"profileList"} = "";
 
    return $this;
 }
@@ -260,7 +269,8 @@ sub _constructMenu
 sub _constructShellScriptBox
 {
    my ($I) = @_;
-   my $model = $I->{"model"};
+   #my $model = $I->{"model"};
+   my $model = Class::WirelessApp->getModel();
 
    my $container = new Gtk2::VBox(TRUE, 5);
 
@@ -308,8 +318,8 @@ sub _constructShellScriptBox
 
    # set startup script and profile directory fields...
    #
-   $scriptEntry->set_text( $I->{"model"}->getStartupScript() );
-   $profileEntry->set_text( $I->{"model"}->getProfileDir() );
+   $scriptEntry->set_text( $model->getStartupScript() );
+   $profileEntry->set_text( $model->getProfileDir() );
 
    # store reference to scriptEntry and profileEntry
    #
@@ -340,7 +350,7 @@ sub _constructCommandBox
    #
    $new->signal_connect("clicked", \&_buttonListener);
    $edit->signal_connect("clicked", \&_buttonListener);
-   $delete->signal_connect("clicked", \&_buttonListener);
+   $delete->signal_connect("clicked", \&_buttonListener, $I->{"profileList"});
    $scan->signal_connect("clicked", \&_buttonListener);
 
    $commandBox->pack_start($new, TRUE, TRUE, 0);
@@ -361,24 +371,20 @@ sub _constructProfileBox
 
    # create a new Gtk2::SimpleList object
    #
-#   my $list = new Gtk2::SimpleList(
-#      'Text Field'    => 'text',
-#      'Markup Field'  => 'markup',
-#      'Int Field'     => 'int',
-#      'Double Field'  => 'double',
-#      'Bool Field'    => 'bool',
-#      'Scalar Field'  => 'scalar',
-#      'Pixbuf Field'  => 'pixbuf',
-#   );
    my $list = new Gtk2::SimpleList(
       '     ' => 'bool',
       'Profile' => 'text',
       'Access Point' => 'text',
    );
 
-   #push @{$list->{data}}, [1, 'HOME adf asdf asf :', 'Olympus'];   
-   #push @{$list->{data}}, [0, 'ERIN', 'JED'];   
-   foreach my $ap ( $I->{"model"}->getProfiles() )
+   # set any properties on new list
+   #
+   $list->get_selection()->set_mode('multiple');
+
+   # get all profiles from the model and add to profile list
+   #
+   #foreach my $ap ( $I->{"model"}->getProfiles() )
+   foreach my $ap ( Class::WirelessApp->getModel()->getProfiles() )
    {
       push @{$list->{data}}, [0, $ap->get("name"), $ap->get("essid")];
    }
@@ -396,6 +402,10 @@ sub _constructProfileBox
    #
    $profileBox->pack_start($list, TRUE, TRUE, 0);
    $profileBox->pack_start($buttonBox, FALSE, FALSE, 0);
+   
+   # store reference to profile list
+   #
+   $I->{"profileList"} = $list;
 
    # set action listeners...
    #
@@ -430,6 +440,7 @@ sub _openFileSelector
 sub _buttonListener
 {
    my ($button, @args) = @_;
+   my $model = Class::WirelessApp->getModel();
 
    if($button->get_label() eq "Browse")
    {
@@ -446,11 +457,24 @@ sub _buttonListener
    }
    elsif($button->get_label() eq "Delete")
    {
+      my ($list) = @args;
+
       print "delete button click caught!\n";
+      print "test " . $list . "\n";
+      exit;
+
+      # get list of selected profiles...
+      #
+      my @rows = $list->get_selected_indicies();
+
+      # get data for selected profiles...
+      #
+      my $data = $list->get_row_data_from_path(new_from_indicies Gtk2::TreePath(@rows));
    }
    elsif($button->get_label() eq "Scan")
    {
       print "scan button click caught!\n";
+      $model->scan();
    }
    elsif($button->get_label() eq "up")
    {

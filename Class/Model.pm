@@ -401,8 +401,16 @@ sub destroyProfile
 {
    my ($I, $name) = @_;
 
+   # if profile exists, delete profile from
+   # memory and in disk
+   #
    if(exists $I->{"profiles"}{$name})
    {
+      # delete profile from disk...
+      #
+      my $file = $I->{"profileDir"} . "/" . $name . ".xml";
+      unlink($file) if(-e $file);
+   
       return delete($I->{"profiles"}{$name});
    }
 }
